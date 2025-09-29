@@ -38,6 +38,10 @@ class CardDatabase {
           cardsStore.createIndex('modified_at', 'modified_at', { unique: false });
           cardsStore.createIndex('sync_status', 'sync_status', { unique: false });
           cardsStore.createIndex('verb', 'verb', { unique: false }); // For verb cards
+          cardsStore.createIndex('tense', 'tense', { unique: false }); // For filtering by tense
+          cardsStore.createIndex('mood', 'mood', { unique: false }); // For filtering by mood
+          cardsStore.createIndex('is_regular', 'is_regular', { unique: false }); // For regular/irregular filtering
+          cardsStore.createIndex('tense_mood', ['tense', 'mood'], { unique: false }); // For compound filtering
         }
 
         // Study sessions store
@@ -68,8 +72,8 @@ class CardDatabase {
     return `${type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  // Save verb cards (from conjugation generation)
-  async saveVerbCards(verbData) {
+  // Save verb cards (from targeted tense/mood generation)
+  async saveVerbCards(verbData, isRegular) {
     const transaction = this.db.transaction(['cards'], 'readwrite');
     const store = transaction.objectStore('cards');
     const timestamp = Date.now();
@@ -85,9 +89,7 @@ class CardDatabase {
           tense: conjugation.tense,
           mood: conjugation.mood,
           conjugated_form: conjugation.form,
-          overview: verbData.overview,
-          notes: verbData.notes,
-          related_verbs: verbData.related_verbs || [],
+          is_regular: isRegular, // Boolean: true for regular, false for irregular
           created_at: timestamp,
           modified_at: timestamp,
           sync_status: 'local'
@@ -98,7 +100,7 @@ class CardDatabase {
       }
 
       await transaction.complete;
-      console.log(`Saved ${savedCards.length} verb cards for ${verbData.verb}`);
+      console.log(`Saved ${savedCards.length} ${verbData.verb} cards (${isRegular ? 'regular' : 'irregular'}) for ${verbData.conjugations[0]?.tense} ${verbData.conjugations[0]?.mood}`);
       return savedCards;
 
     } catch (error) {
@@ -170,6 +172,14 @@ class CardDatabase {
 
         if (filters.mood) {
           cards = cards.filter(card => card.mood === filters.mood);
+        }
+
+        if (filters.is_regular !== undefined) {
+          cards = cards.filter(card => card.is_regular === filters.is_regular);
+        }
+
+        if (filters.verbs && Array.isArray(filters.verbs)) {
+          cards = cards.filter(card => filters.verbs.includes(card.verb));
         }
 
         // Sort by creation date (newest first)
@@ -314,7 +324,25 @@ class CardDatabase {
       verbCards: verbCards.length,
       sentenceCards: sentenceCards.length,
       unsyncedCards: unsyncedCards.length,
+      regularVerbs: verbCards.filter(card => card.is_regular === true).length,
+      irregularVerbs: verbCards.filter(card => card.is_regular === false).length,
       lastModified: Math.max(...cards.map(card => card.modified_at), 0)
+    };
+  }
+
+  // Get unique values for filtering (useful for study mode)
+  async getFilterOptions() {
+    const verbCards = await this.getCards({ type: 'verb' });
+
+    const uniqueVerbs = [...new Set(verbCards.map(card => card.verb))].sort();
+    const uniqueTenses = [...new Set(verbCards.map(card => card.tense))].filter(Boolean).sort();
+    const uniqueMoods = [...new Set(verbCards.map(card => card.mood))].filter(Boolean).sort();
+
+    return {
+      verbs: uniqueVerbs,
+      tenses: uniqueTenses,
+      moods: uniqueMoods,
+      tenseMoodCombos: [...new Set(verbCards.map(card => `${card.tense}_${card.mood}`))].filter(combo => !combo.includes('undefined')).sort()
     };
   }
 }
