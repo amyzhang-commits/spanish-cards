@@ -46,9 +46,8 @@ class SpanishVerbApp {
       resultsSection: document.getElementById('resultsSection'),
       errorSection: document.getElementById('errorSection'),
 
-      // Assessment elements
+      // Generation option elements
       meaningOnlyBtn: document.getElementById('meaningOnlyBtn'),
-      coreBtn: document.getElementById('coreBtn'),
       fullBtn: document.getElementById('fullBtn'),
 
       // Action buttons
@@ -76,11 +75,9 @@ class SpanishVerbApp {
       this.handleVerbSubmission();
     });
 
-    // Assessment options
+    // Generation options
     this.elements.meaningOnlyBtn.addEventListener('click', () =>
       this.generateVerb(this.currentVerbData?.verb, 'meaning_only'));
-    this.elements.coreBtn.addEventListener('click', () =>
-      this.generateVerb(this.currentVerbData?.verb, 'core'));
     this.elements.fullBtn.addEventListener('click', () =>
       this.generateVerb(this.currentVerbData?.verb, 'full'));
 
@@ -110,122 +107,17 @@ class SpanishVerbApp {
       return;
     }
 
-    // First try online assessment, fallback to offline
-    if (this.isOnline) {
-      await this.assessVerb(verb);
-    } else {
-      await this.handleOfflineGeneration(verb);
-    }
-  }
-
-  async assessVerb(verb) {
-    this.showLoading('Analyzing verb complexity...');
-
-    try {
-      const response = await fetch('http://localhost:11434/api/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'gemma3n:latest',
-          prompt: `Analyze the Spanish verb '${verb}' and return this exact JSON format:
-{
-  "verb": "${verb}",
-  "complexity": "regular" or "irregular",
-  "overview": "Brief description of meaning and usage",
-  "related_verbs": ["similar_verb1", "similar_verb2", "similar_verb3"]
-}
-
-Focus on providing 3-4 related verbs that are similar in meaning, conjugation pattern, or usage. Only return the JSON, no other text.`,
-          stream: false
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      const generatedText = data.response || '';
-
-      // Parse JSON response
-      const jsonStart = generatedText.indexOf('{');
-      const jsonEnd = generatedText.lastIndexOf('}') + 1;
-      const jsonText = generatedText.slice(jsonStart, jsonEnd);
-
-      const assessmentData = JSON.parse(jsonText);
-      // Store full assessment data for later use in generation
-      this.currentVerbData = {
-        verb: assessmentData.verb,
-        overview: assessmentData.overview,
-        related_verbs: assessmentData.related_verbs || [],
-        complexity: assessmentData.complexity
-      };
-      this.displayAssessment(assessmentData);
-
-    } catch (error) {
-      console.error('Assessment error:', error);
-
-      // Fallback to offline generation
-      if (error.message.includes('fetch') || error.message.includes('network')) {
-        await this.handleOfflineGeneration(verb);
-      } else {
-        this.showError('Failed to analyze verb: ' + error.message);
-      }
-    }
-  }
-
-  async handleOfflineGeneration(verb) {
-    this.showLoading('Working offline - creating basic cards...');
-
-    // Create basic offline cards without AI assessment
-    const basicData = {
-      verb: verb,
-      complexity: 'unknown',
-      overview: 'Offline mode - basic conjugation practice',
-      special_notes: 'Generated offline without AI analysis',
-      recommended_practice: 'core',
-      english_meaning: 'Translation not available offline'
-    };
-
+    // Go straight to generation options
     this.currentVerbData = { verb: verb };
-
-    // Show offline assessment
-    setTimeout(() => {
-      this.displayAssessment(basicData);
-      this.elements.offlineBtn.style.display = 'inline-block';
-    }, 1000);
+    this.displayGenerationOptions(verb);
   }
 
-  displayAssessment(data) {
+  displayGenerationOptions(verb) {
     this.hideAllSections();
-
-    document.getElementById('assessmentTitle').textContent = `Analysis: ${data.verb}`;
-
-    // Complexity badge
-    const complexityBadge = document.getElementById('verbComplexity');
-    complexityBadge.textContent = data.complexity;
-    complexityBadge.className = `complexity-badge ${data.complexity}`;
-
-    // Assessment details
-    document.getElementById('assessmentOverview').textContent = data.overview || 'No overview available';
-
-    // Display related verbs
-    const relatedVerbsContainer = document.getElementById('assessmentRelatedVerbs');
-    if (data.related_verbs && data.related_verbs.length > 0) {
-      relatedVerbsContainer.innerHTML = data.related_verbs
-        .map(verb => `<span class="related-verb">${verb}</span>`)
-        .join(' ');
-    } else {
-      relatedVerbsContainer.innerHTML = '<span class="no-data">None provided</span>';
-    }
-
-    // Remove any previous recommendations
-    document.querySelectorAll('.option-btn').forEach(btn => btn.classList.remove('recommended'));
-
+    document.getElementById('generationTitle').textContent = `Generate Cards: ${verb}`;
     this.elements.assessmentSection.style.display = 'block';
   }
+
 
   async generateVerb(verb, depth) {
     const depthLabels = {
@@ -456,18 +348,12 @@ Continue this pattern for ALL 94 conjugations. Include past_perfect subjunctive 
     } else {
       // Handle conjugation cards
       document.getElementById('verbTitle').textContent = `Verb: ${data.verb}`;
-      document.getElementById('verbOverview').textContent = data.overview || 'No overview available';
-      document.getElementById('verbNotes').textContent = data.notes || 'No special notes';
+      document.getElementById('verbOverview').textContent = `Complete conjugation set for ${data.verb}`;
+      document.getElementById('verbNotes').textContent = 'All tenses and moods included for comprehensive study';
 
-      // Display related verbs
+      // Display simple related note
       const relatedVerbsContainer = document.getElementById('relatedVerbs');
-      if (data.related_verbs && data.related_verbs.length > 0) {
-        relatedVerbsContainer.innerHTML = data.related_verbs
-          .map(verb => `<span class="related-verb">${verb}</span>`)
-          .join(' ');
-      } else {
-        relatedVerbsContainer.innerHTML = '<span class="no-data">None provided</span>';
-      }
+      relatedVerbsContainer.innerHTML = '<span class="no-data">Focus on mastering this verb first</span>';
 
       // Display conjugation cards
       const previewGrid = document.getElementById('previewGrid');
@@ -568,7 +454,7 @@ Continue this pattern for ALL 94 conjugations. Include past_perfect subjunctive 
 
   retryGeneration() {
     if (this.currentVerbData?.verb) {
-      this.assessVerb(this.currentVerbData.verb);
+      this.displayGenerationOptions(this.currentVerbData.verb);
     }
   }
 

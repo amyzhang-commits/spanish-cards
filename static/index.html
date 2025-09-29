@@ -61,7 +61,7 @@
                             >
                         </div>
                         <button type="submit" id="generateBtn">
-                            <span class="btn-text">Analyze Verb</span>
+                            <span class="btn-text">Choose Card Type</span>
                             <span class="spinner" style="display: none;">🧠</span>
                         </button>
                     </form>
@@ -76,39 +76,21 @@
                     </div>
                 </div>
 
-                <!-- Assessment Section -->
+                <!-- Generation Options Section -->
                 <div id="assessmentSection" class="assessment-section" style="display: none;">
                     <div class="verb-assessment">
-                        <h3 id="assessmentTitle">Verb Analysis</h3>
-                        <div class="assessment-cards">
-                            <div class="assessment-card">
-                                <h4>🔍 Complexity</h4>
-                                <span id="verbComplexity" class="complexity-badge"></span>
-                            </div>
-                            <div class="assessment-card">
-                                <h4>📖 Overview</h4>
-                                <p id="assessmentOverview"></p>
-                            </div>
-                            <div class="assessment-card">
-                                <h4>🔗 Related Verbs</h4>
-                                <div id="assessmentRelatedVerbs"></div>
-                            </div>
-                        </div>
+                        <h3 id="generationTitle">Choose Card Type</h3>
 
                         <div class="generation-options">
-                            <h4>Choose Your Practice Level:</h4>
+                            <h4>What type of cards do you want?</h4>
                             <div class="option-buttons">
                                 <button id="meaningOnlyBtn" class="option-btn">
-                                    📝 Meaning Only
-                                    <small>Just translation card</small>
-                                </button>
-                                <button id="coreBtn" class="option-btn">
-                                    🎯 Core Practice
-                                    <small>~20 essential conjugations</small>
+                                    📝 Meaning Card
+                                    <small>Simple translation card</small>
                                 </button>
                                 <button id="fullBtn" class="option-btn">
-                                    🔥 Full Treatment
-                                    <small>Complete conjugation set</small>
+                                    🔥 Full Conjugations
+                                    <small>Complete conjugation set (~94 cards)</small>
                                 </button>
                             </div>
                         </div>
