@@ -177,7 +177,9 @@ Generate these CORE tenses for ALL pronouns (yo, tú, él/ella/usted, nosotros, 
 
 This should generate approximately 20-25 conjugations. Only return valid JSON, no other text.`;
     } else { // full
-      prompt = `Generate COMPLETE Spanish verb conjugations for '${verb}'. MUST return exactly 94 cards.
+      prompt = `Generate COMPLETE Spanish verb conjugations for '${verb}'.
+
+CRITICAL REQUIREMENT: Generate exactly 94 conjugations. Count them as you go.
 
 Return ONLY this JSON format:
 {
@@ -187,33 +189,35 @@ Return ONLY this JSON format:
   ]
 }
 
-CRITICAL: Generate exactly these tenses in this order:
+REQUIRED BREAKDOWN (MUST total 94):
 
-**INDICATIVE (42 cards):**
-present, preterite, imperfect, future, present_perfect, past_perfect, future_perfect
+**INDICATIVE MOOD (42 cards - 7 tenses × 6 pronouns):**
+1. present (6 cards: yo, tú, él/ella/usted, nosotros, vosotros, ellos/ellas/ustedes)
+2. preterite (6 cards)
+3. imperfect (6 cards)
+4. future (6 cards)
+5. present_perfect (6 cards)
+6. past_perfect (6 cards)
+7. future_perfect (6 cards)
 
-**SUBJUNCTIVE (30 cards):**
-present, imperfect, future_subjunctive, present_perfect, past_perfect
+**SUBJUNCTIVE MOOD (30 cards - 5 tenses × 6 pronouns):**
+8. present (6 cards)
+9. imperfect (6 cards)
+10. future_subjunctive (6 cards)
+11. present_perfect (6 cards)
+12. past_perfect (6 cards)
 
-**CONDITIONAL (12 cards):**
-simple_conditional, conditional_perfect
+**CONDITIONAL MOOD (12 cards - 2 tenses × 6 pronouns):**
+13. simple_conditional (6 cards)
+14. conditional_perfect (6 cards)
 
-**IMPERATIVE (10 cards):**
-affirmative_imperative, negative_imperative
+**IMPERATIVE MOOD (10 cards - only tú, usted, nosotros, vosotros, ustedes):**
+15. affirmative_imperative (5 cards - NO yo)
+16. negative_imperative (5 cards - NO yo)
 
-EXAMPLE STRUCTURE (first 10 cards for "hablar"):
-{"pronoun": "yo", "tense": "present", "mood": "indicative", "form": "hablo"},
-{"pronoun": "tú", "tense": "present", "mood": "indicative", "form": "hablas"},
-{"pronoun": "él/ella/usted", "tense": "present", "mood": "indicative", "form": "habla"},
-{"pronoun": "nosotros", "tense": "present", "mood": "indicative", "form": "hablamos"},
-{"pronoun": "vosotros", "tense": "present", "mood": "indicative", "form": "habláis"},
-{"pronoun": "ellos/ellas/ustedes", "tense": "present", "mood": "indicative", "form": "hablan"},
-{"pronoun": "yo", "tense": "preterite", "mood": "indicative", "form": "hablé"},
-{"pronoun": "tú", "tense": "preterite", "mood": "indicative", "form": "hablaste"},
-{"pronoun": "él/ella/usted", "tense": "preterite", "mood": "indicative", "form": "habló"},
-{"pronoun": "nosotros", "tense": "preterite", "mood": "indicative", "form": "hablamos"}
+TOTAL: 42 + 30 + 12 + 10 = 94 cards exactly.
 
-Continue this pattern for ALL 94 conjugations. Include past_perfect subjunctive (hubiera/hubiese sido). Use exact tense names. Only return valid JSON.`;
+Only return valid JSON with all 94 conjugations. Do not truncate.`;
     }
 
     const response = await fetch('http://localhost:11434/api/generate', {
