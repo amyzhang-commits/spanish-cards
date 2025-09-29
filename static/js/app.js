@@ -203,11 +203,11 @@ REQUIRED BREAKDOWN (MUST total 94):
 7. future_perfect (6 cards)
 
 **SUBJUNCTIVE MOOD (30 cards - 5 tenses × 6 pronouns):**
-8. present (6 cards)
-9. imperfect (6 cards)
+8. present (6 cards) - use "present_subjunctive"
+9. imperfect (6 cards) - use "imperfect_subjunctive"
 10. future_subjunctive (6 cards)
-11. present_perfect (6 cards)
-12. past_perfect (6 cards)
+11. present_perfect (6 cards) - use "present_perfect_subjunctive"
+12. past_perfect (6 cards) - use "past_perfect_subjunctive" (hubiera/hubiese sido forms)
 
 **CONDITIONAL MOOD (12 cards - 2 tenses × 6 pronouns):**
 13. simple_conditional (6 cards)
@@ -223,6 +223,7 @@ CRITICAL: Ensure valid JSON syntax:
 - Put commas between ALL conjugations
 - NO trailing comma after the last conjugation
 - Proper quotes around all strings
+- MUST include past_perfect_subjunctive (hubiera/hubiese sido forms)
 - Only return the JSON, no other text.`;
     }
 
