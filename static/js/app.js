@@ -181,11 +181,13 @@ This should generate approximately 20-25 conjugations. Only return valid JSON, n
 
 CRITICAL REQUIREMENT: Generate exactly 94 conjugations. Count them as you go.
 
-Return ONLY this JSON format:
+Return ONLY this VALID JSON format (check commas!):
 {
   "verb": "${verb}",
   "conjugations": [
-    {"pronoun": "yo", "tense": "present", "mood": "indicative", "form": "conjugated_form"}
+    {"pronoun": "yo", "tense": "present", "mood": "indicative", "form": "conjugated_form"},
+    {"pronoun": "tú", "tense": "present", "mood": "indicative", "form": "conjugated_form"},
+    {"pronoun": "él/ella/usted", "tense": "present", "mood": "indicative", "form": "conjugated_form"}
   ]
 }
 
@@ -217,7 +219,11 @@ REQUIRED BREAKDOWN (MUST total 94):
 
 TOTAL: 42 + 30 + 12 + 10 = 94 cards exactly.
 
-Only return valid JSON with all 94 conjugations. Do not truncate.`;
+CRITICAL: Ensure valid JSON syntax:
+- Put commas between ALL conjugations
+- NO trailing comma after the last conjugation
+- Proper quotes around all strings
+- Only return the JSON, no other text.`;
     }
 
     const response = await fetch('http://localhost:11434/api/generate', {
