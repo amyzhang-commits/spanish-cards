@@ -323,16 +323,11 @@ Continue this pattern for ALL 94 conjugations. Include past_perfect subjunctive 
   displayResults(data, generationType) {
     this.hideAllSections();
 
+    const previewGrid = document.getElementById('previewGrid');
+    const cardCount = document.getElementById('generatedCount');
+
     if (generationType === 'meaning_only') {
       // Handle meaning-only cards
-      document.getElementById('verbTitle').textContent = `Verb: ${data.verb}`;
-      document.getElementById('verbOverview').textContent = data.english_meaning || 'Translation provided';
-      document.getElementById('relatedVerbs').innerHTML = '<span class="no-data">N/A for meaning cards</span>';
-      document.getElementById('verbNotes').textContent = 'Basic meaning card generated offline';
-
-      const previewGrid = document.getElementById('previewGrid');
-      const cardCount = document.getElementById('generatedCount');
-
       previewGrid.innerHTML = `
         <div class="card-preview meaning-card">
           <div class="card-front">
@@ -347,17 +342,6 @@ Continue this pattern for ALL 94 conjugations. Include past_perfect subjunctive 
 
     } else {
       // Handle conjugation cards
-      document.getElementById('verbTitle').textContent = `Verb: ${data.verb}`;
-      document.getElementById('verbOverview').textContent = `Complete conjugation set for ${data.verb}`;
-      document.getElementById('verbNotes').textContent = 'All tenses and moods included for comprehensive study';
-
-      // Display simple related note
-      const relatedVerbsContainer = document.getElementById('relatedVerbs');
-      relatedVerbsContainer.innerHTML = '<span class="no-data">Focus on mastering this verb first</span>';
-
-      // Display conjugation cards
-      const previewGrid = document.getElementById('previewGrid');
-      const cardCount = document.getElementById('generatedCount');
 
       if (data.conjugations && data.conjugations.length > 0) {
         previewGrid.innerHTML = data.conjugations
