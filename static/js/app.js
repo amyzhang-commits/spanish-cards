@@ -134,13 +134,10 @@ class SpanishVerbApp {
   "verb": "${verb}",
   "complexity": "regular" or "irregular",
   "overview": "Brief description of meaning and usage",
-  "special_notes": "Any irregularities, stem changes, or special patterns",
-  "recommended_practice": "meaning_only", "core", or "full",
-  "english_meaning": "Primary English translation",
   "related_verbs": ["similar_verb1", "similar_verb2", "similar_verb3"]
 }
 
-For irregular verbs or verbs with complex usage patterns, recommend 'full' practice. For verbs with some irregularities but manageable patterns, recommend 'core'. For completely regular verbs with straightforward meaning, recommend 'meaning_only'. Only return the JSON, no other text.`,
+Focus on providing 3-4 related verbs that are similar in meaning, conjugation pattern, or usage. Only return the JSON, no other text.`,
           stream: false
         })
       });
@@ -162,10 +159,8 @@ For irregular verbs or verbs with complex usage patterns, recommend 'full' pract
       this.currentVerbData = {
         verb: assessmentData.verb,
         overview: assessmentData.overview,
-        special_notes: assessmentData.special_notes,
-        notes: assessmentData.special_notes, // alias for consistency
         related_verbs: assessmentData.related_verbs || [],
-        english_meaning: assessmentData.english_meaning
+        complexity: assessmentData.complexity
       };
       this.displayAssessment(assessmentData);
 
@@ -215,23 +210,19 @@ For irregular verbs or verbs with complex usage patterns, recommend 'full' pract
 
     // Assessment details
     document.getElementById('assessmentOverview').textContent = data.overview || 'No overview available';
-    document.getElementById('assessmentNotes').textContent = data.special_notes || 'No special notes';
 
-    // Recommended practice badge
-    const practiceRecommendation = data.recommended_practice || 'core';
-    const practiceBadge = document.getElementById('recommendedPractice');
-    practiceBadge.textContent = practiceRecommendation.replace('_', ' ');
-    practiceBadge.className = `practice-badge ${practiceRecommendation}`;
-
-    // Highlight recommended option
-    document.querySelectorAll('.option-btn').forEach(btn => btn.classList.remove('recommended'));
-    if (practiceRecommendation === 'meaning_only') {
-      this.elements.meaningOnlyBtn.classList.add('recommended');
-    } else if (practiceRecommendation === 'core') {
-      this.elements.coreBtn.classList.add('recommended');
+    // Display related verbs
+    const relatedVerbsContainer = document.getElementById('assessmentRelatedVerbs');
+    if (data.related_verbs && data.related_verbs.length > 0) {
+      relatedVerbsContainer.innerHTML = data.related_verbs
+        .map(verb => `<span class="related-verb">${verb}</span>`)
+        .join(' ');
     } else {
-      this.elements.fullBtn.classList.add('recommended');
+      relatedVerbsContainer.innerHTML = '<span class="no-data">None provided</span>';
     }
+
+    // Remove any previous recommendations
+    document.querySelectorAll('.option-btn').forEach(btn => btn.classList.remove('recommended'));
 
     this.elements.assessmentSection.style.display = 'block';
   }
@@ -289,33 +280,38 @@ Generate these CORE tenses for ALL pronouns (yo, tú, él/ella/usted, nosotros, 
 
 This should generate approximately 20-25 conjugations. Only return valid JSON, no other text.`;
     } else { // full
-      prompt = `Generate COMPLETE Spanish verb conjugations for '${verb}'. Return JSON format:
+      prompt = `Generate COMPLETE Spanish verb conjugations for '${verb}'. Target: 94 total cards.
+
+Return ONLY this JSON format:
 {
   "verb": "${verb}",
   "conjugations": [
-    {"pronoun": "yo", "tense": "present", "mood": "indicative", "form": "hablo"},
-    {"pronoun": "yo", "tense": "present", "mood": "subjunctive", "form": "hable"}
+    {"pronoun": "yo", "tense": "present", "mood": "indicative", "form": "conjugated_form"}
   ]
 }
 
-MUST generate ALL of these tenses for ALL pronouns (yo, tú, él/ella/usted, nosotros, vosotros, ellos/ellas/ustedes):
+PRONOUNS (6): yo, tú, él/ella/usted, nosotros, vosotros, ellos/ellas/ustedes
 
-**INDICATIVE MOOD:**
-- Simple: present, preterite, imperfect, future
-- Compound: present_perfect, past_perfect, future_perfect
+REQUIRED TENSES/MOODS:
+**INDICATIVE (7 tenses × 6 pronouns = 42 cards):**
+- present, preterite, imperfect, future, present_perfect, past_perfect, future_perfect
 
-**SUBJUNCTIVE MOOD:**
-- Simple: present, imperfect, imperfect_alt (alternative form)
-- Compound: present_perfect, past_perfect
+**SUBJUNCTIVE (5 tenses × 6 pronouns = 30 cards):**
+- present, imperfect, future_subjunctive, present_perfect, past_perfect
 
-**CONDITIONAL MOOD:**
-- Simple: simple_conditional
-- Compound: conditional_perfect
+**CONDITIONAL (2 tenses × 6 pronouns = 12 cards):**
+- simple_conditional, conditional_perfect
 
-**IMPERATIVE MOOD:**
-- Simple: affirmative_present (for tú, usted, nosotros, vosotros, ustedes only)
+**IMPERATIVE (10 cards total - no "yo"):**
+- affirmative_imperative (tú, usted, nosotros, vosotros, ustedes = 5 cards)
+- negative_imperative (tú, usted, nosotros, vosotros, ustedes = 5 cards)
 
-This should generate approximately 70-80 conjugations total. Use exact tense names as listed above. Only return valid JSON, no other text.`;
+EXAMPLE for "hablar":
+{"pronoun": "yo", "tense": "present", "mood": "indicative", "form": "hablo"}
+{"pronoun": "tú", "tense": "affirmative_imperative", "mood": "imperative", "form": "habla"}
+{"pronoun": "tú", "tense": "negative_imperative", "mood": "imperative", "form": "no hables"}
+
+Generate ALL 94 conjugations. Use exact tense names above. Only return valid JSON.`;
     }
 
     const response = await fetch('http://localhost:11434/api/generate', {
