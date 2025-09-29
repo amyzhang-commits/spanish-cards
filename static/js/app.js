@@ -42,13 +42,13 @@ class SpanishVerbApp {
 
       // Section elements
       loadingSection: document.getElementById('loadingSection'),
-      assessmentSection: document.getElementById('assessmentSection'),
+      generationSection: document.getElementById('generationSection'),
       resultsSection: document.getElementById('resultsSection'),
       errorSection: document.getElementById('errorSection'),
 
-      // Generation option elements
-      meaningOnlyBtn: document.getElementById('meaningOnlyBtn'),
-      fullBtn: document.getElementById('fullBtn'),
+      // Generation form elements
+      tenseMoodSelect: document.getElementById('tenseMoodSelect'),
+      generateCardsBtn: document.getElementById('generateCardsBtn'),
 
       // Action buttons
       saveBtn: document.getElementById('saveBtn'),
@@ -75,11 +75,19 @@ class SpanishVerbApp {
       this.handleVerbSubmission();
     });
 
-    // Generation options
-    this.elements.meaningOnlyBtn.addEventListener('click', () =>
-      this.generateVerb(this.currentVerbData?.verb, 'meaning_only'));
-    this.elements.fullBtn.addEventListener('click', () =>
-      this.generateVerb(this.currentVerbData?.verb, 'full'));
+    // Dropdown change handler
+    this.elements.tenseMoodSelect.addEventListener('change', () => {
+      const isValid = this.elements.tenseMoodSelect.value !== '';
+      this.elements.generateCardsBtn.disabled = !isValid;
+    });
+
+    // Generate cards button
+    this.elements.generateCardsBtn.addEventListener('click', () => {
+      const tenseMood = this.elements.tenseMoodSelect.value;
+      if (tenseMood && this.currentVerbData?.verb) {
+        this.generateVerbCards(this.currentVerbData.verb, tenseMood);
+      }
+    });
 
     // Action buttons
     this.elements.saveBtn.addEventListener('click', () => this.saveCards());
@@ -115,7 +123,162 @@ class SpanishVerbApp {
   displayGenerationOptions(verb) {
     this.hideAllSections();
     document.getElementById('generationTitle').textContent = `Generate Cards: ${verb}`;
-    this.elements.assessmentSection.style.display = 'block';
+
+    // Reset dropdown and button
+    this.elements.tenseMoodSelect.value = '';
+    this.elements.generateCardsBtn.disabled = true;
+
+    this.elements.generationSection.style.display = 'block';
+  }
+
+  async generateVerbCards(verb, tenseMood) {
+    this.showLoading(`Generating ${tenseMood.replace('_', ' ')} cards...`, 'Creating 6 targeted flashcards');
+
+    try {
+      let generatedData;
+      const isRegular = await this.checkVerbRegularity(verb);
+
+      if (this.isOnline && tenseMood !== 'meaning_only') {
+        generatedData = await this.generateTargetedConjugations(verb, tenseMood);
+      } else {
+        generatedData = await this.generateOfflineConjugations(verb, tenseMood);
+      }
+
+      this.currentVerbData = {
+        verb: verb,
+        ...generatedData,
+        isRegular: isRegular,
+        tenseMood: tenseMood
+      };
+
+      this.displayResults(this.currentVerbData, 'targeted');
+
+    } catch (error) {
+      console.error('Generation error:', error);
+      this.showError('Failed to generate verb cards: ' + error.message);
+    }
+  }
+
+  async checkVerbRegularity(verb) {
+    const irregularVerbs = [
+      'ser', 'estar', 'ir', 'haber', 'tener', 'hacer', 'poder', 'decir', 'querer', 'venir',
+      'dar', 'ver', 'saber', 'salir', 'poner', 'traer', 'conocer', 'parecer', 'seguir',
+      'comenzar', 'empezar', 'pensar', 'entender', 'perder', 'mostrar', 'encontrar',
+      'recordar', 'volver', 'dormir', 'morir', 'servir', 'pedir', 'repetir', 'sentir',
+      'mentir', 'preferir', 'divertir', 'sugerir', 'convertir', 'hervir', 'advertir'
+    ];
+
+    return !irregularVerbs.includes(verb.toLowerCase());
+  }
+
+  async generateTargetedConjugations(verb, tenseMood) {
+    const [tense, mood] = this.parseTenseMood(tenseMood);
+
+    let prompt;
+
+    if (tenseMood === 'meaning_only') {
+      prompt = `Generate the English translation for the Spanish verb '${verb}'. Return only JSON:
+{
+  "verb": "${verb}",
+  "english_meaning": "translation here"
+}`;
+    } else {
+      prompt = `Generate Spanish verb conjugations for '${verb}' in ${tense} ${mood}.
+
+Return ONLY this JSON format:
+{
+  "verb": "${verb}",
+  "conjugations": [
+    {"pronoun": "yo", "tense": "${tense}", "mood": "${mood}", "form": "conjugated_form"},
+    {"pronoun": "tú", "tense": "${tense}", "mood": "${mood}", "form": "conjugated_form"},
+    {"pronoun": "él/ella/usted", "tense": "${tense}", "mood": "${mood}", "form": "conjugated_form"},
+    {"pronoun": "nosotros", "tense": "${tense}", "mood": "${mood}", "form": "conjugated_form"},
+    {"pronoun": "vosotros", "tense": "${tense}", "mood": "${mood}", "form": "conjugated_form"},
+    {"pronoun": "ellos/ellas/ustedes", "tense": "${tense}", "mood": "${mood}", "form": "conjugated_form"}
+  ]
+}
+
+Generate exactly 6 conjugations for all pronouns. Use correct ${tense} ${mood} forms. No other text.`;
+    }
+
+    const response = await fetch('http://localhost:11434/api/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gemma3n:latest',
+        prompt: prompt,
+        stream: false
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const generatedText = data.response || '';
+
+    const jsonStart = generatedText.indexOf('{');
+    const jsonEnd = generatedText.lastIndexOf('}') + 1;
+    const jsonText = generatedText.slice(jsonStart, jsonEnd);
+
+    return JSON.parse(jsonText);
+  }
+
+  async generateOfflineConjugations(verb, tenseMood) {
+    if (tenseMood === 'meaning_only') {
+      return {
+        verb: verb,
+        english_meaning: 'Translation not available offline'
+      };
+    }
+
+    const [tense, mood] = this.parseTenseMood(tenseMood);
+    const conjugations = this.getBasicTargetedConjugations(verb, tense, mood);
+
+    return {
+      verb: verb,
+      conjugations: conjugations
+    };
+  }
+
+  parseTenseMood(tenseMood) {
+    const parts = tenseMood.split('_');
+    if (parts.length >= 2) {
+      const tense = parts.slice(0, -1).join('_');
+      const mood = parts[parts.length - 1];
+      return [tense, mood];
+    }
+    return [tenseMood, 'indicative'];
+  }
+
+  getBasicTargetedConjugations(verb, tense, mood) {
+    const root = verb.slice(0, -2);
+    const ending = verb.slice(-2);
+    const pronouns = ['yo', 'tú', 'él/ella/usted', 'nosotros', 'vosotros', 'ellos/ellas/ustedes'];
+
+    let endings = [];
+
+    if (tense === 'present' && mood === 'indicative') {
+      if (ending === 'ar') {
+        endings = ['o', 'as', 'a', 'amos', 'áis', 'an'];
+      } else if (ending === 'er') {
+        endings = ['o', 'es', 'e', 'emos', 'éis', 'en'];
+      } else {
+        endings = ['o', 'es', 'e', 'imos', 'ís', 'en'];
+      }
+    } else {
+      endings = ['[form]', '[form]', '[form]', '[form]', '[form]', '[form]'];
+    }
+
+    return pronouns.map((pronoun, i) => ({
+      pronoun: pronoun,
+      tense: tense,
+      mood: mood,
+      form: root + endings[i]
+    }));
   }
 
 
@@ -337,7 +500,7 @@ CRITICAL: Ensure valid JSON syntax:
     const previewGrid = document.getElementById('previewGrid');
     const cardCount = document.getElementById('generatedCount');
 
-    if (generationType === 'meaning_only') {
+    if (data.tenseMood === 'meaning_only' || generationType === 'meaning_only') {
       // Handle meaning-only cards
       previewGrid.innerHTML = `
         <div class="card-preview meaning-card">
@@ -353,13 +516,20 @@ CRITICAL: Ensure valid JSON syntax:
 
     } else {
       // Handle conjugation cards
-
       if (data.conjugations && data.conjugations.length > 0) {
         previewGrid.innerHTML = data.conjugations
           .map(conjugation => this.createCardPreview(conjugation))
           .join('');
-        const typeLabel = generationType === 'core' ? 'core' : 'complete';
-        cardCount.textContent = `${data.conjugations.length} ${typeLabel} cards generated`;
+
+        let typeLabel;
+        if (generationType === 'targeted') {
+          const tenseMoodDisplay = data.tenseMood ? data.tenseMood.replace('_', ' ') : 'targeted';
+          typeLabel = `${tenseMoodDisplay} cards`;
+        } else {
+          typeLabel = generationType === 'core' ? 'core' : 'complete';
+        }
+
+        cardCount.textContent = `${data.conjugations.length} ${typeLabel} generated`;
       } else {
         previewGrid.innerHTML = '<p class="no-cards">No conjugations generated</p>';
         cardCount.textContent = '0 cards generated';
@@ -398,7 +568,7 @@ CRITICAL: Ensure valid JSON syntax:
     try {
       let savedCards;
 
-      if (this.currentVerbData.generationType === 'meaning_only') {
+      if (this.currentVerbData.tenseMood === 'meaning_only' || this.currentVerbData.generationType === 'meaning_only') {
         // Save as sentence card
         const sentenceData = [{
           spanish_sentence: this.currentVerbData.verb,
@@ -407,8 +577,9 @@ CRITICAL: Ensure valid JSON syntax:
         }];
         savedCards = await cardDB.saveSentenceCards(sentenceData);
       } else {
-        // Save as verb cards
-        savedCards = await cardDB.saveVerbCards(this.currentVerbData);
+        // Save as verb cards with regularity information
+        const isRegular = this.currentVerbData.isRegular !== undefined ? this.currentVerbData.isRegular : true;
+        savedCards = await cardDB.saveVerbCards(this.currentVerbData, isRegular);
       }
 
       // Show success
@@ -477,7 +648,7 @@ CRITICAL: Ensure valid JSON syntax:
 
   hideAllSections() {
     this.elements.loadingSection.style.display = 'none';
-    this.elements.assessmentSection.style.display = 'none';
+    this.elements.generationSection.style.display = 'none';
     this.elements.resultsSection.style.display = 'none';
     this.elements.errorSection.style.display = 'none';
     this.elements.generateBtn.disabled = false;

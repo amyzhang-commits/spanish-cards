@@ -44,9 +44,141 @@
         </header>
 
         <main>
+            <!-- Reference Section -->
+            <section class="reference-section">
+                <h2>📚 Spanish Tenses & Moods Reference</h2>
+                <p>Learn about Spanish conjugation patterns before generating your flashcards</p>
+
+                <div class="reference-grid">
+                    <div class="mood-group">
+                        <h3>📊 Indicative Mood</h3>
+                        <p class="mood-description">States facts, describes reality</p>
+
+                        <div class="tense-list">
+                            <div class="tense-item">
+                                <h4>Present Indicative</h4>
+                                <p>Describes actions happening now or habitual actions</p>
+                                <small>Example: "Yo hablo español" (I speak Spanish)</small>
+                            </div>
+
+                            <div class="tense-item">
+                                <h4>Preterite</h4>
+                                <p>Completed actions in the past with specific time</p>
+                                <small>Example: "Ayer hablé con María" (Yesterday I spoke with María)</small>
+                            </div>
+
+                            <div class="tense-item">
+                                <h4>Imperfect</h4>
+                                <p>Ongoing or habitual actions in the past</p>
+                                <small>Example: "Cuando era niño, hablaba mucho" (When I was a child, I used to talk a lot)</small>
+                            </div>
+
+                            <div class="tense-item">
+                                <h4>Future</h4>
+                                <p>Actions that will happen in the future</p>
+                                <small>Example: "Mañana hablaré con el jefe" (Tomorrow I will speak with the boss)</small>
+                            </div>
+
+                            <div class="tense-item">
+                                <h4>Present Perfect</h4>
+                                <p>Actions completed recently or with present relevance</p>
+                                <small>Example: "He hablado con ella hoy" (I have spoken with her today)</small>
+                            </div>
+
+                            <div class="tense-item">
+                                <h4>Past Perfect</h4>
+                                <p>Actions completed before another past action</p>
+                                <small>Example: "Ya había hablado cuando llegaste" (I had already spoken when you arrived)</small>
+                            </div>
+
+                            <div class="tense-item">
+                                <h4>Future Perfect</h4>
+                                <p>Actions that will be completed before a future point</p>
+                                <small>Example: "Para entonces habré hablado con todos" (By then I will have spoken with everyone)</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mood-group">
+                        <h3>🤔 Subjunctive Mood</h3>
+                        <p class="mood-description">Expresses doubt, emotion, desire, or hypothetical situations</p>
+
+                        <div class="tense-list">
+                            <div class="tense-item">
+                                <h4>Present Subjunctive</h4>
+                                <p>Used with present-time expressions of doubt or emotion</p>
+                                <small>Example: "Espero que hables español" (I hope you speak Spanish)</small>
+                            </div>
+
+                            <div class="tense-item">
+                                <h4>Imperfect Subjunctive</h4>
+                                <p>Used with past-time expressions of doubt or emotion</p>
+                                <small>Example: "Si hablara español..." (If I spoke Spanish...)</small>
+                            </div>
+
+                            <div class="tense-item">
+                                <h4>Future Subjunctive</h4>
+                                <p>Rarely used, found in legal texts and proverbs</p>
+                                <small>Example: "Si hablare español..." (If I were to speak Spanish...)</small>
+                            </div>
+
+                            <div class="tense-item">
+                                <h4>Present Perfect Subjunctive</h4>
+                                <p>Completed actions in contexts requiring subjunctive</p>
+                                <small>Example: "Dudo que haya hablado" (I doubt that he has spoken)</small>
+                            </div>
+
+                            <div class="tense-item">
+                                <h4>Past Perfect Subjunctive</h4>
+                                <p>Past completed actions in hypothetical contexts</p>
+                                <small>Example: "Si hubiera hablado..." (If I had spoken...)</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mood-group">
+                        <h3>💭 Conditional Mood</h3>
+                        <p class="mood-description">Expresses hypothetical or polite situations</p>
+
+                        <div class="tense-list">
+                            <div class="tense-item">
+                                <h4>Simple Conditional</h4>
+                                <p>What would happen under certain conditions</p>
+                                <small>Example: "Hablaría español si pudiera" (I would speak Spanish if I could)</small>
+                            </div>
+
+                            <div class="tense-item">
+                                <h4>Perfect Conditional</h4>
+                                <p>What would have happened in the past</p>
+                                <small>Example: "Habría hablado antes" (I would have spoken earlier)</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mood-group">
+                        <h3>⚡ Imperative Mood</h3>
+                        <p class="mood-description">Gives commands, requests, or instructions</p>
+
+                        <div class="tense-list">
+                            <div class="tense-item">
+                                <h4>Affirmative Imperative</h4>
+                                <p>Positive commands and requests</p>
+                                <small>Example: "¡Habla más despacio!" (Speak more slowly!)</small>
+                            </div>
+
+                            <div class="tense-item">
+                                <h4>Negative Imperative</h4>
+                                <p>Negative commands using subjunctive forms</p>
+                                <small>Example: "¡No hables tan rápido!" (Don't speak so fast!)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <section class="generator-section">
                 <h2>Verb Conjugation Generator</h2>
-                <p>Generate comprehensive flashcards with context - works completely offline!</p>
+                <p>Generate targeted flashcards for specific tenses and moods - works completely offline!</p>
 
                 <div class="input-section">
                     <form id="verbForm">
@@ -77,22 +209,53 @@
                 </div>
 
                 <!-- Generation Options Section -->
-                <div id="assessmentSection" class="assessment-section" style="display: none;">
-                    <div class="verb-assessment">
-                        <h3 id="generationTitle">Choose Card Type</h3>
+                <div id="generationSection" class="generation-section" style="display: none;">
+                    <div class="verb-generation">
+                        <h3 id="generationTitle">Generate Cards</h3>
 
-                        <div class="generation-options">
-                            <h4>What type of cards do you want?</h4>
-                            <div class="option-buttons">
-                                <button id="meaningOnlyBtn" class="option-btn">
-                                    📝 Meaning Card
-                                    <small>Simple translation card</small>
-                                </button>
-                                <button id="fullBtn" class="option-btn">
-                                    🔥 Full Conjugations
-                                    <small>Complete conjugation set (~94 cards)</small>
-                                </button>
+                        <div class="generation-form">
+                            <div class="form-group">
+                                <label for="tenseMoodSelect">Choose Tense & Mood:</label>
+                                <select id="tenseMoodSelect" class="tense-mood-select">
+                                    <option value="">Select a tense and mood...</option>
+
+                                    <optgroup label="📝 Simple Cards">
+                                        <option value="meaning_only">Meaning Card (translation only)</option>
+                                    </optgroup>
+
+                                    <optgroup label="📊 Indicative Mood">
+                                        <option value="present_indicative">Present Indicative</option>
+                                        <option value="preterite_indicative">Preterite</option>
+                                        <option value="imperfect_indicative">Imperfect</option>
+                                        <option value="future_indicative">Future</option>
+                                        <option value="present_perfect_indicative">Present Perfect</option>
+                                        <option value="past_perfect_indicative">Past Perfect</option>
+                                        <option value="future_perfect_indicative">Future Perfect</option>
+                                    </optgroup>
+
+                                    <optgroup label="🤔 Subjunctive Mood">
+                                        <option value="present_subjunctive">Present Subjunctive</option>
+                                        <option value="imperfect_subjunctive">Imperfect Subjunctive</option>
+                                        <option value="future_subjunctive">Future Subjunctive</option>
+                                        <option value="present_perfect_subjunctive">Present Perfect Subjunctive</option>
+                                        <option value="past_perfect_subjunctive">Past Perfect Subjunctive</option>
+                                    </optgroup>
+
+                                    <optgroup label="💭 Conditional Mood">
+                                        <option value="simple_conditional">Simple Conditional</option>
+                                        <option value="perfect_conditional">Perfect Conditional</option>
+                                    </optgroup>
+
+                                    <optgroup label="⚡ Imperative Mood">
+                                        <option value="affirmative_imperative">Affirmative Imperative</option>
+                                        <option value="negative_imperative">Negative Imperative</option>
+                                    </optgroup>
+                                </select>
                             </div>
+
+                            <button id="generateCardsBtn" class="btn-primary" disabled>
+                                🔥 Generate Cards
+                            </button>
                         </div>
                     </div>
                 </div>
