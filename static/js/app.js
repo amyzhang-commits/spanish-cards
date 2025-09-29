@@ -247,8 +247,13 @@ Focus on providing 3-4 related verbs that are similar in meaning, conjugation pa
         generatedData = await this.generateVerbOffline(verb, depth);
       }
 
-      this.currentVerbData = { ...generatedData, generationType: depth };
-      this.displayResults(generatedData, depth);
+      // Merge cached assessment data with generated conjugations
+      this.currentVerbData = {
+        ...this.currentVerbData, // Keep cached assessment data
+        ...generatedData,
+        generationType: depth
+      };
+      this.displayResults(this.currentVerbData, depth);
 
     } catch (error) {
       console.error('Generation error:', error);
@@ -280,7 +285,7 @@ Generate these CORE tenses for ALL pronouns (yo, tú, él/ella/usted, nosotros, 
 
 This should generate approximately 20-25 conjugations. Only return valid JSON, no other text.`;
     } else { // full
-      prompt = `Generate COMPLETE Spanish verb conjugations for '${verb}'. Target: 94 total cards.
+      prompt = `Generate COMPLETE Spanish verb conjugations for '${verb}'. MUST return exactly 94 cards.
 
 Return ONLY this JSON format:
 {
@@ -290,28 +295,33 @@ Return ONLY this JSON format:
   ]
 }
 
-PRONOUNS (6): yo, tú, él/ella/usted, nosotros, vosotros, ellos/ellas/ustedes
+CRITICAL: Generate exactly these tenses in this order:
 
-REQUIRED TENSES/MOODS:
-**INDICATIVE (7 tenses × 6 pronouns = 42 cards):**
-- present, preterite, imperfect, future, present_perfect, past_perfect, future_perfect
+**INDICATIVE (42 cards):**
+present, preterite, imperfect, future, present_perfect, past_perfect, future_perfect
 
-**SUBJUNCTIVE (5 tenses × 6 pronouns = 30 cards):**
-- present, imperfect, future_subjunctive, present_perfect, past_perfect
+**SUBJUNCTIVE (30 cards):**
+present, imperfect, future_subjunctive, present_perfect, past_perfect
 
-**CONDITIONAL (2 tenses × 6 pronouns = 12 cards):**
-- simple_conditional, conditional_perfect
+**CONDITIONAL (12 cards):**
+simple_conditional, conditional_perfect
 
-**IMPERATIVE (10 cards total - no "yo"):**
-- affirmative_imperative (tú, usted, nosotros, vosotros, ustedes = 5 cards)
-- negative_imperative (tú, usted, nosotros, vosotros, ustedes = 5 cards)
+**IMPERATIVE (10 cards):**
+affirmative_imperative, negative_imperative
 
-EXAMPLE for "hablar":
-{"pronoun": "yo", "tense": "present", "mood": "indicative", "form": "hablo"}
-{"pronoun": "tú", "tense": "affirmative_imperative", "mood": "imperative", "form": "habla"}
-{"pronoun": "tú", "tense": "negative_imperative", "mood": "imperative", "form": "no hables"}
+EXAMPLE STRUCTURE (first 10 cards for "hablar"):
+{"pronoun": "yo", "tense": "present", "mood": "indicative", "form": "hablo"},
+{"pronoun": "tú", "tense": "present", "mood": "indicative", "form": "hablas"},
+{"pronoun": "él/ella/usted", "tense": "present", "mood": "indicative", "form": "habla"},
+{"pronoun": "nosotros", "tense": "present", "mood": "indicative", "form": "hablamos"},
+{"pronoun": "vosotros", "tense": "present", "mood": "indicative", "form": "habláis"},
+{"pronoun": "ellos/ellas/ustedes", "tense": "present", "mood": "indicative", "form": "hablan"},
+{"pronoun": "yo", "tense": "preterite", "mood": "indicative", "form": "hablé"},
+{"pronoun": "tú", "tense": "preterite", "mood": "indicative", "form": "hablaste"},
+{"pronoun": "él/ella/usted", "tense": "preterite", "mood": "indicative", "form": "habló"},
+{"pronoun": "nosotros", "tense": "preterite", "mood": "indicative", "form": "hablamos"}
 
-Generate ALL 94 conjugations. Use exact tense names above. Only return valid JSON.`;
+Continue this pattern for ALL 94 conjugations. Include past_perfect subjunctive (hubiera/hubiese sido). Use exact tense names. Only return valid JSON.`;
     }
 
     const response = await fetch('http://localhost:11434/api/generate', {
@@ -429,7 +439,7 @@ Generate ALL 94 conjugations. Use exact tense names above. Only return valid JSO
       document.getElementById('verbNotes').textContent = 'Basic meaning card generated offline';
 
       const previewGrid = document.getElementById('previewGrid');
-      const cardCount = document.getElementById('cardCount');
+      const cardCount = document.getElementById('generatedCount');
 
       previewGrid.innerHTML = `
         <div class="card-preview meaning-card">
@@ -461,7 +471,7 @@ Generate ALL 94 conjugations. Use exact tense names above. Only return valid JSO
 
       // Display conjugation cards
       const previewGrid = document.getElementById('previewGrid');
-      const cardCount = document.getElementById('cardCount');
+      const cardCount = document.getElementById('generatedCount');
 
       if (data.conjugations && data.conjugations.length > 0) {
         previewGrid.innerHTML = data.conjugations
