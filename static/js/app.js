@@ -136,7 +136,8 @@ class SpanishVerbApp {
   "overview": "Brief description of meaning and usage",
   "special_notes": "Any irregularities, stem changes, or special patterns",
   "recommended_practice": "meaning_only", "core", or "full",
-  "english_meaning": "Primary English translation"
+  "english_meaning": "Primary English translation",
+  "related_verbs": ["similar_verb1", "similar_verb2", "similar_verb3"]
 }
 
 For irregular verbs or verbs with complex usage patterns, recommend 'full' practice. For verbs with some irregularities but manageable patterns, recommend 'core'. For completely regular verbs with straightforward meaning, recommend 'meaning_only'. Only return the JSON, no other text.`,
@@ -157,7 +158,15 @@ For irregular verbs or verbs with complex usage patterns, recommend 'full' pract
       const jsonText = generatedText.slice(jsonStart, jsonEnd);
 
       const assessmentData = JSON.parse(jsonText);
-      this.currentVerbData = { verb: assessmentData.verb };
+      // Store full assessment data for later use in generation
+      this.currentVerbData = {
+        verb: assessmentData.verb,
+        overview: assessmentData.overview,
+        special_notes: assessmentData.special_notes,
+        notes: assessmentData.special_notes, // alias for consistency
+        related_verbs: assessmentData.related_verbs || [],
+        english_meaning: assessmentData.english_meaning
+      };
       this.displayAssessment(assessmentData);
 
     } catch (error) {
@@ -260,12 +269,9 @@ For irregular verbs or verbs with complex usage patterns, recommend 'full' pract
     let prompt;
 
     if (depth === 'core') {
-      prompt = `Generate CORE Spanish verb conjugations for '${verb}' with context. Return JSON format:
+      prompt = `Generate CORE Spanish verb conjugations for '${verb}'. Return JSON format:
 {
   "verb": "${verb}",
-  "overview": "Brief description of when/how this verb is used",
-  "related_verbs": ["similar_verb1", "similar_verb2"],
-  "notes": "Special usage patterns, irregularities, or cultural context",
   "conjugations": [
     {"pronoun": "yo", "tense": "present", "mood": "indicative", "form": "conjugated_form"}
   ]
@@ -283,12 +289,9 @@ Generate these CORE tenses for ALL pronouns (yo, tú, él/ella/usted, nosotros, 
 
 This should generate approximately 20-25 conjugations. Only return valid JSON, no other text.`;
     } else { // full
-      prompt = `Generate COMPLETE Spanish verb conjugations for '${verb}' following this exact structure. Return JSON format:
+      prompt = `Generate COMPLETE Spanish verb conjugations for '${verb}'. Return JSON format:
 {
   "verb": "${verb}",
-  "overview": "Brief description of when/how this verb is used",
-  "related_verbs": ["similar_verb1", "similar_verb2"],
-  "notes": "Special usage patterns, irregularities, or cultural context",
   "conjugations": [
     {"pronoun": "yo", "tense": "present", "mood": "indicative", "form": "hablo"},
     {"pronoun": "yo", "tense": "present", "mood": "subjunctive", "form": "hable"}
@@ -339,7 +342,15 @@ This should generate approximately 70-80 conjugations total. Use exact tense nam
     const jsonEnd = generatedText.lastIndexOf('}') + 1;
     const jsonText = generatedText.slice(jsonStart, jsonEnd);
 
-    return JSON.parse(jsonText);
+    const parsedData = JSON.parse(jsonText);
+
+    // Add context from the initial assessment (stored from assessVerb)
+    return {
+      ...parsedData,
+      overview: this.currentVerbData?.overview || 'Generated conjugations',
+      related_verbs: this.currentVerbData?.related_verbs || [],
+      notes: this.currentVerbData?.notes || 'Conjugation set complete'
+    };
   }
 
   async generateVerbOffline(verb, depth) {
