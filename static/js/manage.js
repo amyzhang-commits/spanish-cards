@@ -404,8 +404,182 @@ class ManageCardsApp {
   }
 
   editCard(cardId) {
-    // For now, just show an alert - could implement inline editing later
-    alert('Editing functionality coming soon!');
+    const card = this.allCards.find(c => c.id === cardId);
+    if (!card) return;
+
+    const cardElement = document.querySelector(`[data-card-id="${cardId}"]`);
+    if (!cardElement) return;
+
+    // Toggle edit mode
+    if (cardElement.classList.contains('editing')) {
+      this.cancelEdit(cardId);
+    } else {
+      this.startEdit(cardId);
+    }
+  }
+
+  startEdit(cardId) {
+    const card = this.allCards.find(c => c.id === cardId);
+    const cardElement = document.querySelector(`[data-card-id="${cardId}"]`);
+
+    cardElement.classList.add('editing');
+
+    const cardContent = cardElement.querySelector('.card-content');
+
+    if (card.type === 'verb') {
+      cardContent.innerHTML = `
+        <div class="edit-form">
+          <div class="edit-row">
+            <label>Pronoun:</label>
+            <input type="text" class="edit-pronoun" value="${card.pronoun}">
+          </div>
+          <div class="edit-row">
+            <label>Verb:</label>
+            <input type="text" class="edit-verb" value="${card.verb}">
+          </div>
+          <div class="edit-row">
+            <label>Conjugated Form:</label>
+            <input type="text" class="edit-conjugated" value="${card.conjugated_form}">
+          </div>
+          <div class="edit-row">
+            <label>Tense:</label>
+            <input type="text" class="edit-tense" value="${card.tense}">
+          </div>
+          <div class="edit-row">
+            <label>Mood:</label>
+            <input type="text" class="edit-mood" value="${card.mood}">
+          </div>
+          <div class="edit-row">
+            <label>Regular:</label>
+            <select class="edit-regular">
+              <option value="true" ${card.is_regular ? 'selected' : ''}>Regular</option>
+              <option value="false" ${!card.is_regular ? 'selected' : ''}>Irregular</option>
+            </select>
+          </div>
+        </div>
+      `;
+    } else {
+      cardContent.innerHTML = `
+        <div class="edit-form">
+          <div class="edit-row">
+            <label>Spanish Sentence:</label>
+            <textarea class="edit-spanish" rows="2">${card.spanish_sentence}</textarea>
+          </div>
+          <div class="edit-row">
+            <label>English Translation:</label>
+            <textarea class="edit-english" rows="2">${card.english_translation}</textarea>
+          </div>
+          <div class="edit-row">
+            <label>Grammar Notes:</label>
+            <textarea class="edit-notes" rows="2">${card.grammar_notes || ''}</textarea>
+          </div>
+        </div>
+      `;
+    }
+
+    // Update action buttons
+    const cardActions = cardElement.querySelector('.card-actions');
+    cardActions.innerHTML = `
+      <button class="btn-save" data-action="save">💾 Save</button>
+      <button class="btn-cancel" data-action="cancel">❌ Cancel</button>
+    `;
+
+    // Add event listeners to new buttons
+    cardActions.querySelector('[data-action="save"]').addEventListener('click', () => this.saveEdit(cardId));
+    cardActions.querySelector('[data-action="cancel"]').addEventListener('click', () => this.cancelEdit(cardId));
+  }
+
+  async saveEdit(cardId) {
+    const card = this.allCards.find(c => c.id === cardId);
+    const cardElement = document.querySelector(`[data-card-id="${cardId}"]`);
+
+    try {
+      // Get edited values
+      const editedCard = { ...card };
+
+      if (card.type === 'verb') {
+        editedCard.pronoun = cardElement.querySelector('.edit-pronoun').value.trim();
+        editedCard.verb = cardElement.querySelector('.edit-verb').value.trim();
+        editedCard.conjugated_form = cardElement.querySelector('.edit-conjugated').value.trim();
+        editedCard.tense = cardElement.querySelector('.edit-tense').value.trim();
+        editedCard.mood = cardElement.querySelector('.edit-mood').value.trim();
+        editedCard.is_regular = cardElement.querySelector('.edit-regular').value === 'true';
+      } else {
+        editedCard.spanish_sentence = cardElement.querySelector('.edit-spanish').value.trim();
+        editedCard.english_translation = cardElement.querySelector('.edit-english').value.trim();
+        editedCard.grammar_notes = cardElement.querySelector('.edit-notes').value.trim();
+      }
+
+      // Validate required fields
+      if (card.type === 'verb') {
+        if (!editedCard.pronoun || !editedCard.verb || !editedCard.conjugated_form || !editedCard.tense || !editedCard.mood) {
+          alert('Please fill in all required fields for verb cards.');
+          return;
+        }
+      } else {
+        if (!editedCard.spanish_sentence || !editedCard.english_translation) {
+          alert('Please fill in both Spanish sentence and English translation.');
+          return;
+        }
+      }
+
+      // Update timestamp
+      editedCard.modified_at = Date.now();
+      editedCard.sync_status = 'local'; // Mark as needing sync
+
+      // Save to database
+      await this.updateCardInDatabase(editedCard);
+
+      // Update local data
+      const cardIndex = this.allCards.findIndex(c => c.id === cardId);
+      if (cardIndex !== -1) {
+        this.allCards[cardIndex] = editedCard;
+      }
+
+      // Exit edit mode and refresh display
+      this.cancelEdit(cardId);
+      this.applyFilters(); // Refresh the display
+      this.updateStats();
+
+      // Show success feedback
+      this.showEditSuccess(cardElement);
+
+    } catch (error) {
+      console.error('Failed to save card edit:', error);
+      alert('Failed to save changes: ' + error.message);
+    }
+  }
+
+  async updateCardInDatabase(card) {
+    // Since IndexedDB doesn't have a direct update method in our wrapper,
+    // we need to delete and re-add the card
+    const transaction = cardDB.db.transaction(['cards'], 'readwrite');
+    const store = transaction.objectStore('cards');
+
+    // Update the existing card
+    await store.put(card);
+    await transaction.complete;
+  }
+
+  cancelEdit(cardId) {
+    const cardElement = document.querySelector(`[data-card-id="${cardId}"]`);
+    cardElement.classList.remove('editing');
+
+    // Re-render the card in view mode
+    const card = this.allCards.find(c => c.id === cardId);
+    const newCardHtml = this.createCardElement(card);
+    cardElement.outerHTML = newCardHtml;
+
+    // Re-attach event listeners
+    this.setupCardEventListeners();
+  }
+
+  showEditSuccess(cardElement) {
+    // Add a temporary success indicator
+    cardElement.classList.add('edit-success');
+    setTimeout(() => {
+      cardElement.classList.remove('edit-success');
+    }, 2000);
   }
 
   async findDuplicates() {

@@ -1698,6 +1698,108 @@ nav {
     background: rgba(255, 107, 107, 0.3);
 }
 
+.btn-save, .btn-cancel {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.btn-save {
+    color: #10ac84;
+    border: 1px solid #10ac84;
+}
+
+.btn-save:hover {
+    background: rgba(16, 172, 132, 0.2);
+}
+
+.btn-cancel {
+    color: #ff6b6b;
+    border: 1px solid #ff6b6b;
+}
+
+.btn-cancel:hover {
+    background: rgba(255, 107, 107, 0.2);
+}
+
+/* Edit mode styles */
+.card-item.editing {
+    border-color: #feca57;
+    background: rgba(254, 202, 87, 0.08);
+}
+
+.card-item.edit-success {
+    border-color: #10ac84;
+    background: rgba(16, 172, 132, 0.1);
+    animation: editSuccess 2s ease-out;
+}
+
+@keyframes editSuccess {
+    0% {
+        border-color: #10ac84;
+        background: rgba(16, 172, 132, 0.2);
+    }
+    100% {
+        border-color: rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.08);
+    }
+}
+
+.edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.edit-row {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.edit-row label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #feca57;
+}
+
+.edit-row input,
+.edit-row select,
+.edit-row textarea {
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: #e8eaed;
+    font-size: 0.9rem;
+    resize: vertical;
+    transition: all 0.3s ease;
+}
+
+.edit-row input:focus,
+.edit-row select:focus,
+.edit-row textarea:focus {
+    outline: none;
+    border-color: #feca57;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.edit-row select option {
+    background: #1a1a2e;
+    color: #e8eaed;
+}
+
+.edit-row textarea {
+    min-height: 60px;
+    font-family: inherit;
+    line-height: 1.4;
+}
+
 .loading-cards, .no-cards {
     text-align: center;
     padding: 60px 20px;
