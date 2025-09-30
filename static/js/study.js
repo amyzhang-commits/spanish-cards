@@ -44,12 +44,10 @@ class StudyApp {
       cardTypeRadios: document.querySelectorAll('input[name="cardType"]'),
       regularityRadios: document.querySelectorAll('input[name="regularity"]'),
       verbSelect: document.getElementById('verbSelect'),
-      tenseSelect: document.getElementById('tenseSelect'),
-      moodSelect: document.getElementById('moodSelect'),
+      tenseMoodSelect: document.getElementById('tenseMoodSelect'),
       regularityGroup: document.getElementById('regularityGroup'),
       verbGroup: document.getElementById('verbGroup'),
-      tenseGroup: document.getElementById('tenseGroup'),
-      moodGroup: document.getElementById('moodGroup'),
+      tenseMoodGroup: document.getElementById('tenseMoodGroup'),
 
       // Session info
       matchingCount: document.getElementById('matchingCount'),
@@ -98,8 +96,7 @@ class StudyApp {
     });
 
     this.elements.verbSelect.addEventListener('change', () => this.updateMatchingCount());
-    this.elements.tenseSelect.addEventListener('change', () => this.updateMatchingCount());
-    this.elements.moodSelect.addEventListener('change', () => this.updateMatchingCount());
+    this.elements.tenseMoodSelect.addEventListener('change', () => this.updateMatchingCount());
 
     // Study session controls
     this.elements.startStudyBtn.addEventListener('click', () => this.startStudySession());
@@ -131,24 +128,7 @@ class StudyApp {
         this.elements.verbSelect.appendChild(option);
       });
 
-      // Populate tense dropdown
-      this.elements.tenseSelect.innerHTML = '<option value="">All Tenses</option>';
-      filterOptions.tenses.forEach(tense => {
-        const option = document.createElement('option');
-        option.value = tense;
-        option.textContent = this.formatTenseName(tense);
-        this.elements.tenseSelect.appendChild(option);
-      });
-
-      // Populate mood dropdown
-      this.elements.moodSelect.innerHTML = '<option value="">All Moods</option>';
-      filterOptions.moods.forEach(mood => {
-        const option = document.createElement('option');
-        option.value = mood;
-        option.textContent = this.formatMoodName(mood);
-        this.elements.moodSelect.appendChild(option);
-      });
-
+      // Note: tenseMoodSelect is already populated in HTML with all possible combinations
       // Initial count update
       this.updateMatchingCount();
 
@@ -175,8 +155,7 @@ class StudyApp {
 
     this.elements.regularityGroup.style.display = showVerbFilters ? 'block' : 'none';
     this.elements.verbGroup.style.display = showVerbFilters ? 'block' : 'none';
-    this.elements.tenseGroup.style.display = showVerbFilters ? 'block' : 'none';
-    this.elements.moodGroup.style.display = showVerbFilters ? 'block' : 'none';
+    this.elements.tenseMoodGroup.style.display = showVerbFilters ? 'block' : 'none';
 
     this.updateMatchingCount();
   }
@@ -223,14 +202,16 @@ class StudyApp {
         filters.verb = verb;
       }
 
-      const tense = this.elements.tenseSelect.value;
-      if (tense) {
-        filters.tense = tense;
-      }
-
-      const mood = this.elements.moodSelect.value;
-      if (mood) {
-        filters.mood = mood;
+      const tenseMood = this.elements.tenseMoodSelect.value;
+      if (tenseMood) {
+        // Parse tense_mood format (e.g., "present_indicative")
+        const parts = tenseMood.split('_');
+        if (parts.length >= 2) {
+          const tense = parts.slice(0, -1).join('_');
+          const mood = parts[parts.length - 1];
+          filters.tense = tense;
+          filters.mood = mood;
+        }
       }
     }
 

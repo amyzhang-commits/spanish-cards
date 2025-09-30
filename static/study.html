@@ -96,19 +96,39 @@
                         </select>
                     </div>
 
-                    <!-- Tense Filter -->
-                    <div class="filter-group" id="tenseGroup">
-                        <h3>⏰ Tense</h3>
-                        <select id="tenseSelect" class="filter-select">
-                            <option value="">All Tenses</option>
-                        </select>
-                    </div>
+                    <!-- Tense & Mood Filter -->
+                    <div class="filter-group" id="tenseMoodGroup">
+                        <h3>📚 Tense & Mood</h3>
+                        <select id="tenseMoodSelect" class="filter-select">
+                            <option value="">All Tenses & Moods</option>
 
-                    <!-- Mood Filter -->
-                    <div class="filter-group" id="moodGroup">
-                        <h3>🎭 Mood</h3>
-                        <select id="moodSelect" class="filter-select">
-                            <option value="">All Moods</option>
+                            <optgroup label="📊 Indicative Mood">
+                                <option value="present_indicative">Present Indicative</option>
+                                <option value="preterite_indicative">Preterite</option>
+                                <option value="imperfect_indicative">Imperfect</option>
+                                <option value="future_indicative">Future</option>
+                                <option value="present_perfect_indicative">Present Perfect</option>
+                                <option value="past_perfect_indicative">Past Perfect</option>
+                                <option value="future_perfect_indicative">Future Perfect</option>
+                            </optgroup>
+
+                            <optgroup label="🤔 Subjunctive Mood">
+                                <option value="present_subjunctive">Present Subjunctive</option>
+                                <option value="imperfect_subjunctive">Imperfect Subjunctive</option>
+                                <option value="future_subjunctive">Future Subjunctive</option>
+                                <option value="present_perfect_subjunctive">Present Perfect Subjunctive</option>
+                                <option value="past_perfect_subjunctive">Past Perfect Subjunctive</option>
+                            </optgroup>
+
+                            <optgroup label="💭 Conditional Mood">
+                                <option value="simple_conditional">Simple Conditional</option>
+                                <option value="perfect_conditional">Perfect Conditional</option>
+                            </optgroup>
+
+                            <optgroup label="⚡ Imperative Mood">
+                                <option value="affirmative_imperative">Affirmative Imperative</option>
+                                <option value="negative_imperative">Negative Imperative</option>
+                            </optgroup>
                         </select>
                     </div>
                 </div>
