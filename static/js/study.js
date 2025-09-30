@@ -309,16 +309,16 @@ class StudyApp {
       `;
 
     } else if (card.type === 'sentence') {
-      // Sentence card
+      // Sentence card - English on front, Spanish on back (more challenging!)
       frontContent.innerHTML = `
         <div class="sentence-prompt">
-          <div class="spanish-sentence">${card.spanish_sentence}</div>
+          <div class="english-translation">${card.english_translation}</div>
         </div>
       `;
 
       backContent.innerHTML = `
         <div class="sentence-answer">
-          <div class="english-translation">${card.english_translation}</div>
+          <div class="spanish-sentence">${card.spanish_sentence}</div>
           ${card.grammar_notes ? `<div class="grammar-notes">${card.grammar_notes}</div>` : ''}
         </div>
       `;

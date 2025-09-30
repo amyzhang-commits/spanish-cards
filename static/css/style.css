@@ -1045,7 +1045,7 @@ nav {
     justify-content: center;
 }
 
-.spanish-sentence {
+.sentence-prompt .english-translation {
     font-size: 1.8rem;
     font-weight: 600;
     color: #feca57;
@@ -1059,7 +1059,7 @@ nav {
     align-items: center;
 }
 
-.english-translation {
+.sentence-answer .spanish-sentence {
     font-size: 1.6rem;
     font-weight: 600;
     color: #10ac84;
