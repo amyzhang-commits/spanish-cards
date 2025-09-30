@@ -353,6 +353,11 @@ class StudyApp {
       this.sideStack.splice(existingIndex, 1);
       this.elements.sideStackBtn.textContent = '📚 Add to Side Stack';
       this.elements.sideStackBtn.classList.remove('in-side-stack');
+
+      // If we're reviewing side stack and this was the last card, the session might be complete
+      if (this.reviewingSideStack && this.sideStack.length === 0) {
+        // Will be handled in nextCard() -> displayCurrentCard() -> completeSession()
+      }
     } else {
       // Add to side stack
       this.sideStack.push(currentCard);
@@ -367,12 +372,22 @@ class StudyApp {
   }
 
   completeSession() {
+    // If we're reviewing side stack and there are still cards in it, keep cycling
+    if (this.reviewingSideStack && this.sideStack.length > 0) {
+      // Shuffle the remaining side stack cards and restart
+      this.currentSession = this.shuffleArray([...this.sideStack]);
+      this.currentCardIndex = 0;
+      this.displayCurrentCard();
+      return;
+    }
+
+    // Session is truly complete
     this.elements.studySection.style.display = 'none';
     this.elements.completeSection.style.display = 'block';
 
     // Update summary
     if (this.reviewingSideStack) {
-      this.elements.sessionSummary.textContent = 'You\'ve finished reviewing your side stack!';
+      this.elements.sessionSummary.textContent = 'Perfect! You\'ve mastered your side stack! 🎉';
     } else {
       this.elements.sessionSummary.textContent = `You've studied ${this.currentSession.length} cards!`;
     }
