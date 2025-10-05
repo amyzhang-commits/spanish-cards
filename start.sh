@@ -5,11 +5,23 @@
 
 echo "🚀 Starting Spanish Cards..."
 
+# Detect python command (prefer uv if available)
+if command -v uv &> /dev/null; then
+    PYTHON_CMD="uv run python"
+elif command -v python3 &> /dev/null; then
+    PYTHON_CMD="python3"
+elif command -v python &> /dev/null; then
+    PYTHON_CMD="python"
+else
+    echo "❌ Python not found. Please install Python 3."
+    exit 1
+fi
+
 # Check if Ollama is installed
 if ! command -v ollama &> /dev/null; then
     echo "⚠️  Ollama not found. Install from https://ollama.ai"
     echo "📱 Starting in offline-only mode..."
-    python -m http.server 8080 --directory static
+    $PYTHON_CMD -m http.server 8080 --directory static
     exit 0
 fi
 
@@ -48,4 +60,4 @@ cleanup() {
 trap cleanup INT TERM
 
 # Start the web server
-python -m http.server 8080 --directory static
+$PYTHON_CMD -m http.server 8080 --directory static

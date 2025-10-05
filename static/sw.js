@@ -1,5 +1,5 @@
 // Service Worker for Spanish Verb Trainer PWA
-const CACHE_NAME = 'spanish-cards-v1';
+const CACHE_NAME = 'spanish-cards-v2';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -53,8 +53,20 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Skip cache if running on localhost (development mode)
+  const url = new URL(event.request.url);
+  if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+    // Network-first strategy for development
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        return caches.match(event.request);
+      })
+    );
+    return;
+  }
+
   // Handle app shell requests
-  if (APP_SHELL.includes(new URL(event.request.url).pathname)) {
+  if (APP_SHELL.includes(url.pathname)) {
     event.respondWith(
       caches.match(event.request)
         .then((response) => {

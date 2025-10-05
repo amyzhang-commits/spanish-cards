@@ -1,0 +1,102 @@
+SPANISH VERB TRAINER - MOBILE PWA ENHANCEMENT ROADMAP
+========================================================
+
+## Current Status
+✅ Core PWA foundation built (manifest.json, service worker, responsive CSS)
+✅ Offline-first architecture with IndexedDB storage
+✅ Full functionality works on mobile browsers
+✅ Cross-device sync infrastructure ready
+
+## Next Phase: True Mobile App Experience
+
+### 1. INSTALL PROMPT & APP-LIKE BEHAVIOR
+- [ ] Add "Install App" button with native browser install prompt
+- [ ] Hide browser UI when installed (standalone display mode)
+- [ ] Add app launch splash screen
+- [ ] Implement "beforeinstallprompt" event handling
+
+### 2. MOBILE UX OPTIMIZATIONS
+- [ ] Larger touch targets (minimum 44px for iOS guidelines)
+- [ ] Swipe gestures for flashcards (swipe to reveal, swipe for next)
+- [ ] Pull-to-refresh on card lists
+- [ ] Better mobile keyboard handling for text inputs
+- [ ] Haptic feedback for interactions (if supported)
+
+### 3. NATIVE-LIKE FEATURES
+- [ ] Background sync when app reopens
+- [ ] Push notifications for study reminders (optional)
+- [ ] Share target (share sentences from other apps)
+- [ ] Offline indicator with better mobile styling
+- [ ] App shortcuts (quick actions from home screen)
+
+### 4. PERFORMANCE ENHANCEMENTS
+- [ ] Lazy loading for large card sets
+- [ ] Virtual scrolling for manage cards view
+- [ ] Image compression for any future image features
+- [ ] Bundle optimization for faster initial load
+
+### 5. MOBILE-SPECIFIC STUDY FEATURES
+- [ ] Voice recording for pronunciation practice
+- [ ] Camera integration for text extraction (future)
+- [ ] One-handed study mode
+- [ ] Shake to shuffle cards
+- [ ] Study streak tracking with local notifications
+
+## Technical Implementation Notes
+
+### Install Prompt Implementation
+```javascript
+// Add to main app.js
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  showInstallButton();
+});
+```
+
+### Mobile Gestures
+```javascript
+// Add to study.js for swipe navigation
+let startX, startY;
+flashcard.addEventListener('touchstart', (e) => {
+  startX = e.touches[0].clientX;
+  startY = e.touches[0].clientY;
+});
+```
+
+### Service Worker Enhancements
+- Add background sync for offline card creation
+- Cache management for optimal performance
+- Update notification system
+
+## Core Philosophy Alignment
+This roadmap maintains the local-first, cloud-sync philosophy:
+- **Primary storage:** IndexedDB (works 100% offline)
+- **Secondary storage:** Railway for cross-device sync
+- **Offline capability:** Full functionality without internet
+- **Mobile-first:** Native app experience without app store
+
+## Success Metrics
+- App can be installed from home screen
+- Feels indistinguishable from native app
+- Study sessions work seamlessly offline
+- Cross-device sync happens transparently
+- Load time under 2 seconds on mobile
+
+## Target User Experience
+"I install the Spanish Verb Trainer from my browser to my phone's home screen. It opens instantly like any native app. I can study my cards on the subway with no internet, create new verb sets during a flight, and everything syncs perfectly when I get back online. It feels as smooth and responsive as Anki."
+
+## Implementation Priority
+1. Install prompt (highest impact, lowest effort)
+2. Mobile touch optimizations
+3. Swipe gestures for study mode
+4. Background sync improvements
+5. Advanced mobile features (voice, etc.)
+
+## Estimated Timeline
+- Phase 1 (Install + Basic Mobile): 1-2 sessions
+- Phase 2 (Advanced UX): 2-3 sessions
+- Phase 3 (Native Features): 2-3 sessions
+
+TOTAL: Ready for app store-quality experience in ~6 development sessions
