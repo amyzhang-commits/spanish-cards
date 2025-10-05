@@ -2,7 +2,7 @@
 nixPkgs = ["nodejs", "npm", "python3", "gcc", "gnumake"]
 
 [phases.install]
-cmds = ["cd server && npm install"]
+cmds = ["npm install"]
 
 [start]
-cmd = "cd server && npm start"
+cmd = "npm start"
