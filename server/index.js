@@ -41,7 +41,12 @@ async function initDatabase() {
 initDatabase().catch(console.error);
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:8080', 'http://localhost:8000', 'http://127.0.0.1:8080'],
+  credentials: true,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type']
+}));
 app.use(express.json({ limit: '10mb' }));
 
 // Health check
