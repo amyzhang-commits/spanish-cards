@@ -138,8 +138,15 @@ class SpanishVerbApp {
       let generatedData;
       const isRegular = await this.checkVerbRegularity(verb);
 
+      // Try online generation first if browser is online
       if (this.isOnline && tenseMood !== 'meaning_only') {
-        generatedData = await this.generateTargetedConjugations(verb, tenseMood);
+        try {
+          generatedData = await this.generateTargetedConjugations(verb, tenseMood);
+        } catch (ollamaError) {
+          // Ollama not available, fall back to offline mode
+          console.warn('Ollama not available, using offline generation:', ollamaError.message);
+          generatedData = await this.generateOfflineConjugations(verb, tenseMood);
+        }
       } else {
         generatedData = await this.generateOfflineConjugations(verb, tenseMood);
       }
@@ -261,16 +268,114 @@ Generate exactly 6 conjugations for all pronouns. Use correct ${tense} ${mood} f
 
     let endings = [];
 
+    // Present Indicative
     if (tense === 'present' && mood === 'indicative') {
       if (ending === 'ar') {
         endings = ['o', 'as', 'a', 'amos', 'áis', 'an'];
       } else if (ending === 'er') {
         endings = ['o', 'es', 'e', 'emos', 'éis', 'en'];
-      } else {
+      } else if (ending === 'ir') {
         endings = ['o', 'es', 'e', 'imos', 'ís', 'en'];
       }
-    } else {
-      endings = ['[form]', '[form]', '[form]', '[form]', '[form]', '[form]'];
+    }
+    // Preterite
+    else if (tense === 'preterite' && mood === 'indicative') {
+      if (ending === 'ar') {
+        endings = ['é', 'aste', 'ó', 'amos', 'asteis', 'aron'];
+      } else if (ending === 'er' || ending === 'ir') {
+        endings = ['í', 'iste', 'ió', 'imos', 'isteis', 'ieron'];
+      }
+    }
+    // Imperfect
+    else if (tense === 'imperfect' && mood === 'indicative') {
+      if (ending === 'ar') {
+        endings = ['aba', 'abas', 'aba', 'ábamos', 'abais', 'aban'];
+      } else if (ending === 'er' || ending === 'ir') {
+        endings = ['ía', 'ías', 'ía', 'íamos', 'íais', 'ían'];
+      }
+    }
+    // Future
+    else if (tense === 'future' && mood === 'indicative') {
+      const futureRoot = verb; // Use full infinitive for future
+      endings = ['é', 'ás', 'á', 'emos', 'éis', 'án'];
+      return pronouns.map((pronoun, i) => ({
+        pronoun: pronoun,
+        tense: tense,
+        mood: mood,
+        form: futureRoot + endings[i]
+      }));
+    }
+    // Simple Conditional
+    else if (tense === 'simple' && mood === 'conditional') {
+      const condRoot = verb; // Use full infinitive
+      endings = ['ía', 'ías', 'ía', 'íamos', 'íais', 'ían'];
+      return pronouns.map((pronoun, i) => ({
+        pronoun: pronoun,
+        tense: tense,
+        mood: mood,
+        form: condRoot + endings[i]
+      }));
+    }
+    // Present Subjunctive
+    else if (tense === 'present' && mood === 'subjunctive') {
+      if (ending === 'ar') {
+        endings = ['e', 'es', 'e', 'emos', 'éis', 'en'];
+      } else if (ending === 'er' || ending === 'ir') {
+        endings = ['a', 'as', 'a', 'amos', 'áis', 'an'];
+      }
+    }
+    // Imperfect Subjunctive
+    else if (tense === 'imperfect' && mood === 'subjunctive') {
+      if (ending === 'ar') {
+        endings = ['ara', 'aras', 'ara', 'áramos', 'arais', 'aran'];
+      } else if (ending === 'er' || ending === 'ir') {
+        endings = ['iera', 'ieras', 'iera', 'iéramos', 'ierais', 'ieran'];
+      }
+    }
+    // Affirmative Imperative
+    else if (tense === 'affirmative' && mood === 'imperative') {
+      if (ending === 'ar') {
+        return [
+          { pronoun: 'tú', tense: tense, mood: mood, form: root + 'a' },
+          { pronoun: 'usted', tense: tense, mood: mood, form: root + 'e' },
+          { pronoun: 'nosotros', tense: tense, mood: mood, form: root + 'emos' },
+          { pronoun: 'vosotros', tense: tense, mood: mood, form: root + 'ad' },
+          { pronoun: 'ustedes', tense: tense, mood: mood, form: root + 'en' }
+        ];
+      } else if (ending === 'er' || ending === 'ir') {
+        const impEnding = ending === 'er' ? 'e' : 'e';
+        return [
+          { pronoun: 'tú', tense: tense, mood: mood, form: root + impEnding },
+          { pronoun: 'usted', tense: tense, mood: mood, form: root + 'a' },
+          { pronoun: 'nosotros', tense: tense, mood: mood, form: root + 'amos' },
+          { pronoun: 'vosotros', tense: tense, mood: mood, form: root + (ending === 'er' ? 'ed' : 'id') },
+          { pronoun: 'ustedes', tense: tense, mood: mood, form: root + 'an' }
+        ];
+      }
+    }
+    // Negative Imperative (uses subjunctive forms)
+    else if (tense === 'negative' && mood === 'imperative') {
+      if (ending === 'ar') {
+        return [
+          { pronoun: 'tú', tense: tense, mood: mood, form: 'no ' + root + 'es' },
+          { pronoun: 'usted', tense: tense, mood: mood, form: 'no ' + root + 'e' },
+          { pronoun: 'nosotros', tense: tense, mood: mood, form: 'no ' + root + 'emos' },
+          { pronoun: 'vosotros', tense: tense, mood: mood, form: 'no ' + root + 'éis' },
+          { pronoun: 'ustedes', tense: tense, mood: mood, form: 'no ' + root + 'en' }
+        ];
+      } else if (ending === 'er' || ending === 'ir') {
+        return [
+          { pronoun: 'tú', tense: tense, mood: mood, form: 'no ' + root + 'as' },
+          { pronoun: 'usted', tense: tense, mood: mood, form: 'no ' + root + 'a' },
+          { pronoun: 'nosotros', tense: tense, mood: mood, form: 'no ' + root + 'amos' },
+          { pronoun: 'vosotros', tense: tense, mood: mood, form: 'no ' + root + 'áis' },
+          { pronoun: 'ustedes', tense: tense, mood: mood, form: 'no ' + root + 'an' }
+        ];
+      }
+    }
+    // Fallback for unsupported tenses
+    else {
+      endings = ['[offline]', '[offline]', '[offline]', '[offline]', '[offline]', '[offline]'];
     }
 
     return pronouns.map((pronoun, i) => ({

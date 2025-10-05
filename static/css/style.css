@@ -566,8 +566,14 @@ nav {
     background: rgba(255, 255, 255, 0.15);
 }
 
-.card-front {
+/* Preview card layout - NOT absolute positioned */
+.card-preview .card-front {
     margin-bottom: 10px;
+    position: relative;
+}
+
+.card-preview .card-back {
+    position: relative;
 }
 
 .card-prompt {
@@ -967,8 +973,9 @@ nav {
     position: relative;
 }
 
-.card-front,
-.card-back {
+/* Flashcard styling for study mode only */
+.flashcard .card-front,
+.flashcard .card-back {
     width: 100%;
     min-height: 280px;
     background: rgba(255, 255, 255, 0.1);
@@ -984,7 +991,7 @@ nav {
     transition: all 0.3s ease;
 }
 
-.card-back {
+.flashcard .card-back {
     background: rgba(16, 172, 132, 0.1);
     border-color: rgba(16, 172, 132, 0.3);
 }

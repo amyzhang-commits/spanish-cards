@@ -1,6 +1,8 @@
 // Sync engine for cross-device synchronization
 class SyncEngine {
   constructor() {
+    // Disable sync by default (no backend server needed)
+    this.syncEnabled = false;
     this.syncEndpoint = this.getSyncEndpoint();
     this.deviceId = this.getDeviceId();
     this.syncInProgress = false;
@@ -51,6 +53,11 @@ class SyncEngine {
 
   // Attempt to sync cards with server
   async syncCards() {
+    // Skip if sync is disabled (no backend server)
+    if (!this.syncEnabled) {
+      return false;
+    }
+
     if (this.syncInProgress || !this.isOnline()) {
       console.log('Sync skipped: already in progress or offline');
       return false;
@@ -156,6 +163,11 @@ class SyncEngine {
 
   // Register for background sync (when available)
   async registerBackgroundSync() {
+    // Skip if sync is disabled
+    if (!this.syncEnabled) {
+      return;
+    }
+
     if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
       try {
         const registration = await navigator.serviceWorker.ready;
@@ -169,6 +181,11 @@ class SyncEngine {
 
   // Auto-sync when coming online
   startAutoSync() {
+    // Skip if sync is disabled
+    if (!this.syncEnabled) {
+      return;
+    }
+
     // Listen for online/offline events
     window.addEventListener('online', () => {
       console.log('Device came online, attempting sync...');
