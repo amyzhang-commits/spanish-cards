@@ -154,7 +154,7 @@ app.get('/api/stats', async (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Spanish Cards Sync Server running on port ${PORT}`);
   console.log(`📊 Database: Postgres`);
 });
