@@ -1,19 +1,25 @@
 // Sync engine for cross-device synchronization
 class SyncEngine {
   constructor() {
-    // Disable sync by default (no backend server needed)
-    this.syncEnabled = false;
+    // Enable sync if SYNC_ENDPOINT is configured
     this.syncEndpoint = this.getSyncEndpoint();
+    this.syncEnabled = !!this.syncEndpoint;
     this.deviceId = this.getDeviceId();
     this.syncInProgress = false;
     this.syncListeners = [];
   }
 
   getSyncEndpoint() {
-    // Use Railway for sync in production, localhost for development
+    // Check for custom sync endpoint in localStorage
+    const customEndpoint = localStorage.getItem('spanish_cards_sync_endpoint');
+    if (customEndpoint) {
+      return customEndpoint;
+    }
+
+    // Default endpoints
     return window.location.hostname === 'localhost'
       ? 'http://localhost:8000'
-      : 'https://spanish-flashcards-production.up.railway.app';
+      : null; // Will be set to Railway URL after deployment
   }
 
   getDeviceId() {
