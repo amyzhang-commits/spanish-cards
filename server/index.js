@@ -52,6 +52,20 @@ app.options('*', cors());
 
 app.use(express.json({ limit: '10mb' }));
 
+// Root route for Railway health checks
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Spanish Cards Sync Server',
+    status: 'running',
+    endpoints: {
+      health: '/health',
+      uploadCards: 'POST /api/cards',
+      downloadCards: 'GET /api/cards/:device_id',
+      stats: '/api/stats'
+    }
+  });
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: Date.now() });
@@ -157,7 +171,7 @@ app.get('/api/stats', async (req, res) => {
 });
 
 // Start server
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, () => {
   console.log(`🚀 Spanish Cards Sync Server running on port ${PORT}`);
   console.log(`📊 Database: Postgres`);
 });
