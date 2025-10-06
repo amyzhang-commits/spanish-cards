@@ -37,11 +37,11 @@ class CardDatabase {
           cardsStore.createIndex('created_at', 'created_at', { unique: false });
           cardsStore.createIndex('modified_at', 'modified_at', { unique: false });
           cardsStore.createIndex('sync_status', 'sync_status', { unique: false });
-          cardsStore.createIndex('verb', 'verb', { unique: false }); // For verb cards
-          cardsStore.createIndex('tense', 'tense', { unique: false }); // For filtering by tense
-          cardsStore.createIndex('mood', 'mood', { unique: false }); // For filtering by mood
-          cardsStore.createIndex('is_regular', 'is_regular', { unique: false }); // For regular/irregular filtering
-          cardsStore.createIndex('tense_mood', ['tense', 'mood'], { unique: false }); // For compound filtering
+          cardsStore.createIndex('verb', 'verb', { unique: false });
+          cardsStore.createIndex('tense', 'tense', { unique: false });
+          cardsStore.createIndex('mood', 'mood', { unique: false });
+          cardsStore.createIndex('is_regular', 'is_regular', { unique: false });
+          cardsStore.createIndex('tense_mood', ['tense', 'mood'], { unique: false });
         }
 
         // Study sessions store
@@ -89,7 +89,7 @@ class CardDatabase {
           tense: conjugation.tense,
           mood: conjugation.mood,
           conjugated_form: conjugation.form,
-          is_regular: isRegular, // Boolean: true for regular, false for irregular
+          is_regular: isRegular,
           created_at: timestamp,
           modified_at: timestamp,
           sync_status: 'local'
@@ -234,20 +234,37 @@ class CardDatabase {
   async markCardsSynced(cardIds) {
     const transaction = this.db.transaction(['cards'], 'readwrite');
     const store = transaction.objectStore('cards');
-
+    
     try {
-      for (const cardId of cardIds) {
-        const card = await store.get(cardId);
-        if (card) {
-          card.sync_status = 'synced';
-          card.modified_at = Date.now();
-          await store.put(card);
-        }
-      }
-
-      await transaction.complete;
+      // Use Promise.all instead of await in a loop
+      await Promise.all(cardIds.map(cardId => {
+        return new Promise((resolve, reject) => {
+          const getRequest = store.get(cardId);
+          
+          getRequest.onsuccess = () => {
+            const card = getRequest.result;
+            if (card) {
+              card.sync_status = 'synced';
+              card.modified_at = Date.now();
+              const putRequest = store.put(card);
+              putRequest.onsuccess = () => resolve();
+              putRequest.onerror = () => reject(putRequest.error);
+            } else {
+              resolve();
+            }
+          };
+          
+          getRequest.onerror = () => reject(getRequest.error);
+        });
+      }));
+      
+      // Wait for transaction to complete
+      await new Promise((resolve, reject) => {
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+      });
+      
       console.log(`Marked ${cardIds.length} cards as synced`);
-
     } catch (error) {
       console.error('Error marking cards as synced:', error);
       throw error;
