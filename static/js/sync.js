@@ -120,38 +120,15 @@ class SyncEngine {
   // Upload cards to server
   async uploadCards(cards) {
     try {
-      // Convert cards to server format
-      const verbCards = [];
-      const sentenceCards = [];
-
-      cards.forEach(card => {
-        if (card.type === 'verb') {
-          verbCards.push({
-            verb: card.verb,
-            pronoun: card.pronoun,
-            tense: card.tense,
-            mood: card.mood,
-            conjugated_form: card.conjugated_form
-          });
-        } else if (card.type === 'sentence') {
-          sentenceCards.push({
-            spanish_sentence: card.spanish_sentence,
-            english_translation: card.english_translation,
-            grammar_notes: card.grammar_notes || ''
-          });
-        }
-      });
-
-      const requestBody = {};
-      if (verbCards.length > 0) requestBody.verb_cards = verbCards;
-      if (sentenceCards.length > 0) requestBody.sentence_cards = sentenceCards;
-
       const response = await fetch(`${this.syncEndpoint}/api/cards`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify({
+          cards: cards,
+          device_id: this.deviceId
+        })
       });
 
       if (!response.ok) {
