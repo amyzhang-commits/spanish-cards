@@ -7,6 +7,18 @@ const { Pool } = pg;
 const app = express();
 const PORT = process.env.PORT || 8000;
 
+// IMPORTANT: Respond immediately to health checks, even if DB isn't ready yet
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: Date.now() });
+});
+
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Spanish Cards Sync Server',
+    status: 'running'
+  });
+});
+
 // Initialize Postgres connection
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
