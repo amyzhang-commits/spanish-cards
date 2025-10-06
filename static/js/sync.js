@@ -10,17 +10,17 @@ class SyncEngine {
   }
 
   getSyncEndpoint() {
-    // Check for custom sync endpoint in localStorage
-    const customEndpoint = localStorage.getItem('spanish_cards_sync_endpoint');
-    if (customEndpoint) {
-      return customEndpoint;
-    }
-
-    // Default endpoints
-    return window.location.hostname === 'localhost'
-      ? 'http://localhost:8000'
-      : null; // Will be set to Railway URL after deployment
+  // Check for custom sync endpoint in localStorage
+  const customEndpoint = localStorage.getItem('spanish_cards_sync_endpoint');
+  if (customEndpoint) {
+    return customEndpoint;
   }
+
+  // Default endpoints
+  return window.location.hostname === 'localhost'
+    ? 'http://localhost:8000'
+    : 'https://spanish-cards-production.up.railway.app';
+}
 
   getDeviceId() {
     let deviceId = localStorage.getItem('spanish_cards_device_id');
