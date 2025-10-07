@@ -130,6 +130,33 @@ app.post('/api/cards', async (req, res) => {
   }
 });
 
+// Download all cards (for initial sync or when device_id not provided)
+app.get('/api/cards', async (req, res) => {
+  try {
+    // Get all non-deleted cards
+    const result = await pool.query(
+      `SELECT data FROM cards
+       WHERE deleted = 0
+       ORDER BY updated_at ASC`
+    );
+
+    const cards = result.rows.map(row =>
+      typeof row.data === 'string' ? JSON.parse(row.data) : row.data
+    );
+
+    res.json({
+      success: true,
+      cards: cards,
+      count: cards.length,
+      timestamp: Date.now()
+    });
+
+  } catch (error) {
+    console.error('Download error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Download cards for device (only cards modified after last sync)
 app.get('/api/cards/:device_id', async (req, res) => {
   try {
