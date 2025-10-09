@@ -181,57 +181,109 @@ class SpanishVerbApp {
   async generateTargetedConjugations(verb, tenseMood) {
     const [tense, mood] = this.parseTenseMood(tenseMood);
 
-    let prompt;
-
     if (tenseMood === 'meaning_only') {
-      prompt = `Generate the English translation for the Spanish verb '${verb}'. Return only JSON:
+      const prompt = `Generate the English translation for the Spanish verb '${verb}'. Return only JSON:
 {
   "verb": "${verb}",
   "english_meaning": "translation here"
 }`;
-    } else {
-      prompt = `Generate Spanish verb conjugations for '${verb}' in ${tense} ${mood}.
 
-Return ONLY this JSON format:
-{
-  "verb": "${verb}",
-  "conjugations": [
-    {"pronoun": "yo", "tense": "${tense}", "mood": "${mood}", "form": "conjugated_form"},
-    {"pronoun": "tú", "tense": "${tense}", "mood": "${mood}", "form": "conjugated_form"},
-    {"pronoun": "él/ella/usted", "tense": "${tense}", "mood": "${mood}", "form": "conjugated_form"},
-    {"pronoun": "nosotros", "tense": "${tense}", "mood": "${mood}", "form": "conjugated_form"},
-    {"pronoun": "vosotros", "tense": "${tense}", "mood": "${mood}", "form": "conjugated_form"},
-    {"pronoun": "ellos/ellas/ustedes", "tense": "${tense}", "mood": "${mood}", "form": "conjugated_form"}
-  ]
-}
+      const response = await fetch('http://localhost:11434/api/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'aya:8b',
+          prompt: prompt,
+          stream: false
+        })
+      });
 
-Generate exactly 6 conjugations for all pronouns. Use correct ${tense} ${mood} forms. No other text.`;
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const generatedText = data.response || '';
+
+      const jsonStart = generatedText.indexOf('{');
+      const jsonEnd = generatedText.lastIndexOf('}') + 1;
+      const jsonText = generatedText.slice(jsonStart, jsonEnd);
+
+      return JSON.parse(jsonText);
     }
 
-    const response = await fetch('http://localhost:11434/api/generate', {
+    // STEP 1: Use aya:8b to get correct Spanish conjugations
+    const conjugationPrompt = `Please conjugate "${verb}" in ${tense} for all persons`;
+
+    const step1Response = await fetch('http://localhost:11434/api/generate', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         model: 'aya:8b',
-        prompt: prompt,
+        prompt: conjugationPrompt,
         stream: false
       })
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    if (!step1Response.ok) {
+      throw new Error(`HTTP ${step1Response.status}: ${step1Response.statusText}`);
     }
 
-    const data = await response.json();
-    const generatedText = data.response || '';
+    const step1Data = await step1Response.json();
+    const conjugationText = step1Data.response || '';
 
-    const jsonStart = generatedText.indexOf('{');
-    const jsonEnd = generatedText.lastIndexOf('}') + 1;
-    const jsonText = generatedText.slice(jsonStart, jsonEnd);
+    console.log('Step 1 (aya) - Plain text conjugations:', conjugationText);
 
-    return JSON.parse(jsonText);
+    // STEP 2: Use gemma3n to convert to JSON
+    const jsonPrompt = `Convert these Spanish verb conjugations to JSON format.
+
+Conjugations:
+${conjugationText}
+
+Return ONLY this JSON format, no other text:
+{
+  "verb": "${verb}",
+  "conjugations": [
+    {"pronoun": "yo", "tense": "${tense}", "mood": "${mood}", "form": "the_form"},
+    {"pronoun": "tú", "tense": "${tense}", "mood": "${mood}", "form": "the_form"},
+    {"pronoun": "él/ella/usted", "tense": "${tense}", "mood": "${mood}", "form": "the_form"},
+    {"pronoun": "nosotros", "tense": "${tense}", "mood": "${mood}", "form": "the_form"},
+    {"pronoun": "vosotros", "tense": "${tense}", "mood": "${mood}", "form": "the_form"},
+    {"pronoun": "ellos/ellas/ustedes", "tense": "${tense}", "mood": "${mood}", "form": "the_form"}
+  ]
+}`;
+
+    const step2Response = await fetch('http://localhost:11434/api/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gemma3n:latest',
+        prompt: jsonPrompt,
+        stream: false
+      })
+    });
+
+    if (!step2Response.ok) {
+      throw new Error(`HTTP ${step2Response.status}: ${step2Response.statusText}`);
+    }
+
+    const step2Data = await step2Response.json();
+    const jsonText = step2Data.response || '';
+
+    console.log('Step 2 (gemma3n) - JSON output:', jsonText);
+
+    // Parse JSON from response
+    const jsonStart = jsonText.indexOf('{');
+    const jsonEnd = jsonText.lastIndexOf('}') + 1;
+    const cleanJsonText = jsonText.slice(jsonStart, jsonEnd);
+
+    return JSON.parse(cleanJsonText);
   }
 
   async generateOfflineConjugations(verb, tenseMood) {
