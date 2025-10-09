@@ -55,7 +55,7 @@ initDatabase().catch(console.error);
 // Middleware - Allow all origins for now
 app.use(cors({
   origin: '*',
-  methods: ['GET', 'POST', 'OPTIONS'],
+  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type']
 }));
 
@@ -96,19 +96,24 @@ app.post('/api/cards', async (req, res) => {
     await client.query('BEGIN');
 
     for (const card of cards) {
+      // Handle both new/updated cards and deletions
+      const isDeleted = card.deleted ? 1 : 0;
+
       await client.query(
         `INSERT INTO cards (id, device_id, card_type, data, created_at, updated_at, deleted)
-         VALUES ($1, $2, $3, $4, $5, $6, 0)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          ON CONFLICT (id) DO UPDATE SET
            data = EXCLUDED.data,
-           updated_at = EXCLUDED.updated_at`,
+           updated_at = EXCLUDED.updated_at,
+           deleted = EXCLUDED.deleted`,
         [
           card.id,
           device_id,
           card.type,
           JSON.stringify(card),
           card.created_at || Date.now(),
-          Date.now()
+          Date.now(),
+          isDeleted
         ]
       );
     }
@@ -124,6 +129,45 @@ app.post('/api/cards', async (req, res) => {
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Upload error:', error);
+    res.status(500).json({ error: error.message });
+  } finally {
+    client.release();
+  }
+});
+
+// Batch delete cards
+app.post('/api/cards/delete', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { card_ids, device_id } = req.body;
+
+    if (!card_ids || !Array.isArray(card_ids) || !device_id) {
+      return res.status(400).json({ error: 'Invalid request: card_ids array and device_id required' });
+    }
+
+    await client.query('BEGIN');
+
+    // Mark cards as deleted
+    for (const cardId of card_ids) {
+      await client.query(
+        `UPDATE cards
+         SET deleted = 1, updated_at = $1
+         WHERE id = $2`,
+        [Date.now(), cardId]
+      );
+    }
+
+    await client.query('COMMIT');
+
+    res.json({
+      success: true,
+      deleted: card_ids.length,
+      timestamp: Date.now()
+    });
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Delete error:', error);
     res.status(500).json({ error: error.message });
   } finally {
     client.release();
