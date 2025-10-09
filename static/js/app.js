@@ -182,11 +182,7 @@ class SpanishVerbApp {
     const [tense, mood] = this.parseTenseMood(tenseMood);
 
     if (tenseMood === 'meaning_only') {
-      const prompt = `Generate the English translation for the Spanish verb '${verb}'. Return only JSON:
-{
-  "verb": "${verb}",
-  "english_meaning": "translation here"
-}`;
+      const prompt = `What is the English translation of the Spanish verb "${verb}"? Reply with ONLY the English meaning, nothing else.`;
 
       const response = await fetch('http://localhost:11434/api/generate', {
         method: 'POST',
@@ -196,7 +192,10 @@ class SpanishVerbApp {
         body: JSON.stringify({
           model: 'aya:8b',
           prompt: prompt,
-          stream: false
+          stream: false,
+          options: {
+            temperature: 0.1
+          }
         })
       });
 
@@ -205,19 +204,26 @@ class SpanishVerbApp {
       }
 
       const data = await response.json();
-      const generatedText = data.response || '';
+      const meaning = data.response.trim();
 
-      const jsonStart = generatedText.indexOf('{');
-      const jsonEnd = generatedText.lastIndexOf('}') + 1;
-      const jsonText = generatedText.slice(jsonStart, jsonEnd);
-
-      return JSON.parse(jsonText);
+      return {
+        verb: verb,
+        english_meaning: meaning
+      };
     }
 
-    // STEP 1: Use aya:8b to get correct Spanish conjugations
-    const conjugationPrompt = `Please conjugate "${verb}" in ${tense} for all persons`;
+    // For conjugations: Get plain text from aya, parse with code
+    const conjugationPrompt = `Conjugate the Spanish verb "${verb}" in ${tense} ${mood} tense.
 
-    const step1Response = await fetch('http://localhost:11434/api/generate', {
+Return ONLY the 6 conjugated forms separated by the pipe character | with NO spaces, in this exact order:
+yo|tú|él/ella/usted|nosotros|vosotros|ellos/ellas/ustedes
+
+Example for "decir" in preterite indicative:
+dije|dijiste|dijo|dijimos|dijisteis|dijeron
+
+Now conjugate "${verb}" in ${tense} ${mood}. Return ONLY the pipe-separated forms, nothing else.`;
+
+    const response = await fetch('http://localhost:11434/api/generate', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -225,65 +231,51 @@ class SpanishVerbApp {
       body: JSON.stringify({
         model: 'aya:8b',
         prompt: conjugationPrompt,
-        stream: false
+        stream: false,
+        options: {
+          temperature: 0.1,
+          top_p: 0.9
+        }
       })
     });
 
-    if (!step1Response.ok) {
-      throw new Error(`HTTP ${step1Response.status}: ${step1Response.statusText}`);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    const step1Data = await step1Response.json();
-    const conjugationText = step1Data.response || '';
+    const data = await response.json();
+    const responseText = data.response.trim();
 
-    console.log('Step 1 (aya) - Plain text conjugations:', conjugationText);
+    console.log('Aya response:', responseText);
 
-    // STEP 2: Use gemma3n to convert to JSON
-    const jsonPrompt = `Convert these Spanish verb conjugations to JSON format.
+    // Parse the pipe-separated response
+    const parts = responseText.split('|').map(f => f.trim());
 
-Conjugations:
-${conjugationText}
+    // Strip pronouns from the forms
+    const pronounPatterns = /^(yo|tú|él\/ella\/usted|nosotros|vosotros|ellos\/ellas\/ustedes)\s+/i;
+    const forms = parts.map(part => part.replace(pronounPatterns, '').trim());
 
-Return ONLY this JSON format, no other text:
-{
-  "verb": "${verb}",
-  "conjugations": [
-    {"pronoun": "yo", "tense": "${tense}", "mood": "${mood}", "form": "the_form"},
-    {"pronoun": "tú", "tense": "${tense}", "mood": "${mood}", "form": "the_form"},
-    {"pronoun": "él/ella/usted", "tense": "${tense}", "mood": "${mood}", "form": "the_form"},
-    {"pronoun": "nosotros", "tense": "${tense}", "mood": "${mood}", "form": "the_form"},
-    {"pronoun": "vosotros", "tense": "${tense}", "mood": "${mood}", "form": "the_form"},
-    {"pronoun": "ellos/ellas/ustedes", "tense": "${tense}", "mood": "${mood}", "form": "the_form"}
-  ]
-}`;
+    console.log('Parsed forms:', forms);
 
-    const step2Response = await fetch('http://localhost:11434/api/generate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'gemma3n:latest',
-        prompt: jsonPrompt,
-        stream: false
-      })
-    });
-
-    if (!step2Response.ok) {
-      throw new Error(`HTTP ${step2Response.status}: ${step2Response.statusText}`);
+    // Validate we got 6 forms
+    if (forms.length !== 6) {
+      console.warn(`Expected 6 forms, got ${forms.length}. Falling back to offline generation.`);
+      return await this.generateOfflineConjugations(verb, tenseMood);
     }
 
-    const step2Data = await step2Response.json();
-    const jsonText = step2Data.response || '';
+    // Structure into JSON manually
+    const pronouns = ['yo', 'tú', 'él/ella/usted', 'nosotros', 'vosotros', 'ellos/ellas/ustedes'];
+    const conjugations = pronouns.map((pronoun, i) => ({
+      pronoun: pronoun,
+      tense: tense,
+      mood: mood,
+      form: forms[i]
+    }));
 
-    console.log('Step 2 (gemma3n) - JSON output:', jsonText);
-
-    // Parse JSON from response
-    const jsonStart = jsonText.indexOf('{');
-    const jsonEnd = jsonText.lastIndexOf('}') + 1;
-    const cleanJsonText = jsonText.slice(jsonStart, jsonEnd);
-
-    return JSON.parse(cleanJsonText);
+    return {
+      verb: verb,
+      conjugations: conjugations
+    };
   }
 
   async generateOfflineConjugations(verb, tenseMood) {
@@ -348,7 +340,7 @@ Return ONLY this JSON format, no other text:
     }
     // Future
     else if (tense === 'future' && mood === 'indicative') {
-      const futureRoot = verb; // Use full infinitive for future
+      const futureRoot = verb;
       endings = ['é', 'ás', 'á', 'emos', 'éis', 'án'];
       return pronouns.map((pronoun, i) => ({
         pronoun: pronoun,
@@ -359,7 +351,7 @@ Return ONLY this JSON format, no other text:
     }
     // Simple Conditional
     else if (tense === 'simple' && mood === 'conditional') {
-      const condRoot = verb; // Use full infinitive
+      const condRoot = verb;
       endings = ['ía', 'ías', 'ía', 'íamos', 'íais', 'ían'];
       return pronouns.map((pronoun, i) => ({
         pronoun: pronoun,
@@ -405,7 +397,7 @@ Return ONLY this JSON format, no other text:
         ];
       }
     }
-    // Negative Imperative (uses subjunctive forms)
+    // Negative Imperative
     else if (tense === 'negative' && mood === 'imperative') {
       if (ending === 'ar') {
         return [
@@ -425,7 +417,7 @@ Return ONLY this JSON format, no other text:
         ];
       }
     }
-    // Fallback for unsupported tenses
+    // Fallback
     else {
       endings = ['[offline]', '[offline]', '[offline]', '[offline]', '[offline]', '[offline]'];
     }
@@ -436,219 +428,6 @@ Return ONLY this JSON format, no other text:
       mood: mood,
       form: root + endings[i]
     }));
-  }
-
-
-  async generateVerb(verb, depth) {
-    const depthLabels = {
-      'meaning_only': 'meaning card',
-      'core': 'core conjugations',
-      'full': 'complete conjugations'
-    };
-
-    this.showLoading(`Generating ${depthLabels[depth]}...`);
-
-    try {
-      let generatedData;
-
-      if (this.isOnline && depth !== 'meaning_only') {
-        // Try online generation for conjugations
-        generatedData = await this.generateVerbOnline(verb, depth);
-      } else {
-        // Use offline generation
-        generatedData = await this.generateVerbOffline(verb, depth);
-      }
-
-      // Merge cached assessment data with generated conjugations
-      this.currentVerbData = {
-        ...this.currentVerbData, // Keep cached assessment data
-        ...generatedData,
-        generationType: depth
-      };
-      this.displayResults(this.currentVerbData, depth);
-
-    } catch (error) {
-      console.error('Generation error:', error);
-      this.showError('Failed to generate verb content: ' + error.message);
-    }
-  }
-
-  async generateVerbOnline(verb, depth) {
-    let prompt;
-
-    if (depth === 'core') {
-      prompt = `Generate CORE Spanish verb conjugations for '${verb}'. Return JSON format:
-{
-  "verb": "${verb}",
-  "conjugations": [
-    {"pronoun": "yo", "tense": "present", "mood": "indicative", "form": "conjugated_form"}
-  ]
-}
-
-Generate these CORE tenses for ALL pronouns (yo, tú, él/ella/usted, nosotros, vosotros, ellos/ellas/ustedes):
-- present indicative
-- preterite
-- imperfect
-- future
-- present subjunctive
-- imperfect subjunctive
-- simple conditional
-- imperative (tú and usted forms only)
-
-This should generate approximately 20-25 conjugations. Only return valid JSON, no other text.`;
-    } else { // full
-      prompt = `Generate COMPLETE Spanish verb conjugations for '${verb}'.
-
-CRITICAL REQUIREMENT: Generate exactly 94 conjugations. Count them as you go.
-
-Return ONLY this VALID JSON format (check commas!):
-{
-  "verb": "${verb}",
-  "conjugations": [
-    {"pronoun": "yo", "tense": "present", "mood": "indicative", "form": "conjugated_form"},
-    {"pronoun": "tú", "tense": "present", "mood": "indicative", "form": "conjugated_form"},
-    {"pronoun": "él/ella/usted", "tense": "present", "mood": "indicative", "form": "conjugated_form"}
-  ]
-}
-
-REQUIRED BREAKDOWN (MUST total 94):
-
-**INDICATIVE MOOD (42 cards - 7 tenses × 6 pronouns):**
-1. present (6 cards: yo, tú, él/ella/usted, nosotros, vosotros, ellos/ellas/ustedes)
-2. preterite (6 cards)
-3. imperfect (6 cards)
-4. future (6 cards)
-5. present_perfect (6 cards)
-6. past_perfect (6 cards)
-7. future_perfect (6 cards)
-
-**SUBJUNCTIVE MOOD (30 cards - 5 tenses × 6 pronouns):**
-8. present (6 cards) - use "present_subjunctive"
-9. imperfect (6 cards) - use "imperfect_subjunctive"
-10. future_subjunctive (6 cards)
-11. present_perfect (6 cards) - use "present_perfect_subjunctive"
-12. past_perfect (6 cards) - use "past_perfect_subjunctive" (hubiera/hubiese sido forms)
-
-**CONDITIONAL MOOD (12 cards - 2 tenses × 6 pronouns):**
-13. simple_conditional (6 cards)
-14. conditional_perfect (6 cards)
-
-**IMPERATIVE MOOD (10 cards - only tú, usted, nosotros, vosotros, ustedes):**
-15. affirmative_imperative (5 cards - NO yo)
-16. negative_imperative (5 cards - NO yo)
-
-TOTAL: 42 + 30 + 12 + 10 = 94 cards exactly.
-
-CRITICAL: Ensure valid JSON syntax:
-- Put commas between ALL conjugations
-- NO trailing comma after the last conjugation
-- Proper quotes around all strings
-- MUST include past_perfect_subjunctive (hubiera/hubiese sido forms)
-- Only return the JSON, no other text.`;
-    }
-
-    const response = await fetch('http://localhost:11434/api/generate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'aya:8b',
-        prompt: prompt,
-        stream: false
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    const generatedText = data.response || '';
-
-    // Parse JSON response
-    const jsonStart = generatedText.indexOf('{');
-    const jsonEnd = generatedText.lastIndexOf('}') + 1;
-    const jsonText = generatedText.slice(jsonStart, jsonEnd);
-
-    const parsedData = JSON.parse(jsonText);
-
-    // Add context from the initial assessment (stored from assessVerb)
-    return {
-      ...parsedData,
-      overview: this.currentVerbData?.overview || 'Generated conjugations',
-      related_verbs: this.currentVerbData?.related_verbs || [],
-      notes: this.currentVerbData?.notes || 'Conjugation set complete'
-    };
-  }
-
-  async generateVerbOffline(verb, depth) {
-    // Basic offline conjugation patterns (simplified)
-    const basicConjugations = this.getBasicConjugations(verb, depth);
-
-    return {
-      verb: verb,
-      overview: `Offline generation for ${verb}`,
-      related_verbs: [],
-      notes: 'Generated offline with basic patterns',
-      conjugations: basicConjugations,
-      english_meaning: 'Translation not available offline'
-    };
-  }
-
-  getBasicConjugations(verb, depth) {
-    const root = verb.slice(0, -2); // Remove -ar, -er, -ir
-    const ending = verb.slice(-2);
-    const pronouns = ['yo', 'tú', 'él/ella/usted', 'nosotros', 'vosotros', 'ellos/ellas/ustedes'];
-
-    let conjugations = [];
-
-    if (depth === 'meaning_only') {
-      return []; // No conjugations for meaning-only
-    }
-
-    // Basic present indicative patterns
-    let presentEndings;
-    if (ending === 'ar') {
-      presentEndings = ['o', 'as', 'a', 'amos', 'áis', 'an'];
-    } else if (ending === 'er') {
-      presentEndings = ['o', 'es', 'e', 'emos', 'éis', 'en'];
-    } else { // ir
-      presentEndings = ['o', 'es', 'e', 'imos', 'ís', 'en'];
-    }
-
-    pronouns.forEach((pronoun, i) => {
-      conjugations.push({
-        pronoun: pronoun,
-        tense: 'present',
-        mood: 'indicative',
-        form: root + presentEndings[i]
-      });
-    });
-
-    if (depth === 'full') {
-      // Add more tenses for full generation (simplified patterns)
-      // This is a basic implementation - in a real app you'd want more sophisticated patterns
-
-      // Simple preterite
-      let preteriteEndings;
-      if (ending === 'ar') {
-        preteriteEndings = ['é', 'aste', 'ó', 'amos', 'asteis', 'aron'];
-      } else {
-        preteriteEndings = ['í', 'iste', 'ió', 'imos', 'isteis', 'ieron'];
-      }
-
-      pronouns.forEach((pronoun, i) => {
-        conjugations.push({
-          pronoun: pronoun,
-          tense: 'preterite',
-          mood: 'indicative',
-          form: root + preteriteEndings[i]
-        });
-      });
-    }
-
-    return conjugations;
   }
 
   displayResults(data, generationType) {
@@ -837,9 +616,11 @@ CRITICAL: Ensure valid JSON syntax:
       case 'sync_completed':
         this.elements.syncIndicator.style.display = 'none';
         this.elements.syncStatus.textContent = 'Synced';
-        if (data && data.uploaded > 0) {
-          console.log(`Sync completed: ${data.uploaded} cards uploaded`);
+        if (data && (data.uploaded > 0 || data.downloaded > 0)) {
+          console.log(`Sync completed: ${data.uploaded} uploaded, ${data.downloaded} downloaded`);
         }
+        // Refresh UI to show new cards
+        this.updateUI();
         break;
 
       case 'sync_failed':
