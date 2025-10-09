@@ -253,6 +253,33 @@ app.get('/api/stats', async (req, res) => {
   }
 });
 
+// Admin: Clear all cards (hard delete from database)
+app.delete('/api/admin/clear-all', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Hard delete all cards
+    const result = await client.query('DELETE FROM cards');
+
+    await client.query('COMMIT');
+
+    res.json({
+      success: true,
+      cards_deleted: result.rowCount,
+      message: 'All cards permanently deleted',
+      timestamp: Date.now()
+    });
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Clear all error:', error);
+    res.status(500).json({ error: error.message });
+  } finally {
+    client.release();
+  }
+});
+
 // Start server - IMPORTANT: listen on 0.0.0.0 and Railway's PORT
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Spanish Cards Sync Server running on port ${PORT}`);
