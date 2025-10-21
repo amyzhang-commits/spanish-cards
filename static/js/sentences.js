@@ -20,6 +20,7 @@ class SentenceProcessorApp {
       this.initializeUI();
       this.setupEventListeners();
       this.updateUI();
+      this.loadAvailableSets();
 
       console.log('Sentence processor initialized successfully');
 
@@ -36,6 +37,8 @@ class SentenceProcessorApp {
       sentenceForm: document.getElementById('sentenceForm'),
       sentenceInput: document.getElementById('sentenceInput'),
       processBtn: document.getElementById('processBtn'),
+      setSelect: document.getElementById('setSelect'),
+      newSetInput: document.getElementById('newSetInput'),
 
       // Section elements
       loadingSection: document.getElementById('loadingSection'),
@@ -296,11 +299,17 @@ Only return the JSON, no other text.`;
     this.elements.saveBtn.innerHTML = '💾 Saving...';
 
     try {
+      // Get the set name from either the dropdown or the new input field
+      const selectedSet = this.elements.setSelect.value;
+      const newSet = this.elements.newSetInput.value.trim();
+      const setName = newSet || selectedSet || '';
+
       const sentences = this.processedSentences.processed_sentences.map(sentence => ({
         spanish_sentence: sentence.corrected_spanish,
         english_translation: sentence.english_translation,
         grammar_notes: sentence.verb_info || '',
-        original_sentence: sentence.original_sentence
+        original_sentence: sentence.original_sentence,
+        set_name: setName
       }));
 
       const savedCards = await cardDB.saveSentenceCards(sentences);
@@ -333,12 +342,34 @@ Only return the JSON, no other text.`;
     }
   }
 
+  async loadAvailableSets() {
+    try {
+      const sets = await cardDB.getUniqueSets();
+
+      // Clear existing options except the first one
+      this.elements.setSelect.innerHTML = '<option value="">-- Select existing set or create new --</option>';
+
+      // Populate with available sets
+      sets.forEach(setName => {
+        const option = document.createElement('option');
+        option.value = setName;
+        option.textContent = setName;
+        this.elements.setSelect.appendChild(option);
+      });
+    } catch (error) {
+      console.error('Failed to load available sets:', error);
+    }
+  }
+
   resetForm() {
     this.hideAllSections();
     this.elements.sentenceInput.value = '';
+    this.elements.newSetInput.value = '';
+    this.elements.setSelect.value = '';
     this.elements.sentenceInput.focus();
     this.processedSentences = null;
     this.elements.offlineBtn.style.display = 'none';
+    this.loadAvailableSets(); // Reload sets in case new one was added
   }
 
   retryProcessing() {

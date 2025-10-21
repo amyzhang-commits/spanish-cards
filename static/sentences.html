@@ -65,6 +65,16 @@ El esta estudiando para el examen"
                             ></textarea>
                             <small class="input-help">💡 Tip: Each line or sentence will be processed separately</small>
                         </div>
+
+                        <div class="form-group">
+                            <label for="setSelect">Sentence Set (Optional):</label>
+                            <select id="setSelect">
+                                <option value="">-- Select existing set or create new --</option>
+                            </select>
+                            <input type="text" id="newSetInput" placeholder="Or type a new set name..." style="margin-top: 8px;" />
+                            <small class="input-help">📚 Organize sentences into sets for easier studying</small>
+                        </div>
+
                         <button type="submit" id="processBtn">
                             <span class="btn-text">🔍 Process Sentences</span>
                             <span class="spinner" style="display: none;">🧠</span>
