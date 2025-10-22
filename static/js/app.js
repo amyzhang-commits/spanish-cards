@@ -215,13 +215,23 @@ class SpanishVerbApp {
     // For conjugations: Get plain text from aya, parse with code
     const conjugationPrompt = `Conjugate the Spanish verb "${verb}" in ${tense} ${mood} tense.
 
-Return ONLY the 6 conjugated forms separated by the pipe character | with NO spaces, in this exact order:
-yo|tú|él/ella/usted|nosotros|vosotros|ellos/ellas/ustedes
+Return ONLY the 6 conjugated verb forms (NOT the pronouns) separated by the pipe character | with NO spaces.
+
+The 6 forms should be in this exact order:
+1st person singular (yo)
+2nd person singular (tú)
+3rd person singular (él/ella/usted)
+1st person plural (nosotros)
+2nd person plural (vosotros)
+3rd person plural (ellos/ellas/ustedes)
 
 Example for "decir" in preterite indicative:
 dije|dijiste|dijo|dijimos|dijisteis|dijeron
 
-Now conjugate "${verb}" in ${tense} ${mood}. Return ONLY the pipe-separated forms, nothing else.`;
+Example for "hablar" in present indicative:
+hablo|hablas|habla|hablamos|habláis|hablan
+
+Now conjugate "${verb}" in ${tense} ${mood}. Return ONLY the conjugated verb forms separated by pipes, NO pronouns, nothing else.`;
 
     const response = await fetch('http://localhost:11434/api/generate', {
       method: 'POST',
@@ -250,12 +260,20 @@ Now conjugate "${verb}" in ${tense} ${mood}. Return ONLY the pipe-separated form
 
     // Parse the pipe-separated response
     const parts = responseText.split('|').map(f => f.trim());
+    console.log('Split parts:', parts);
 
     // Strip pronouns from the forms
     const pronounPatterns = /^(yo|tú|él\/ella\/usted|nosotros|vosotros|ellos\/ellas\/ustedes)\s+/i;
     const forms = parts.map(part => part.replace(pronounPatterns, '').trim());
 
-    console.log('Parsed forms:', forms);
+    console.log('Parsed forms after stripping pronouns:', forms);
+
+    // Check if forms are empty (might indicate Aya returned pronouns only)
+    if (forms.every(f => f === '')) {
+      console.warn('All forms are empty after stripping pronouns. Response might contain only pronouns.');
+      console.log('Falling back to offline generation.');
+      return await this.generateOfflineConjugations(verb, tenseMood);
+    }
 
     // Validate we got 6 forms
     if (forms.length !== 6) {
