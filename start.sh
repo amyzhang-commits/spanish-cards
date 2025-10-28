@@ -36,10 +36,10 @@ else
     echo "✅ Ollama already running"
 fi
 
-# Check if gemma3n model is available
-if ! ollama list | grep -q "gemma3n"; then
-    echo "📥 Gemma3n model not found. Pulling..."
-    ollama pull gemma3n:latest
+# Check if aya:8b model is available
+if ! ollama list | grep -q "aya:8b"; then
+    echo "📥 Aya model not found. Pulling..."
+    ollama pull aya:8b
 fi
 
 echo "🌐 Starting web server on http://localhost:8080"

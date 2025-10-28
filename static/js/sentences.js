@@ -154,7 +154,7 @@ Only return the JSON, no other text.`;
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            model: 'gemma3n:latest',
+            model: 'aya:8b',
             prompt: prompt,
             stream: false
           })

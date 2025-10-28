@@ -11,7 +11,7 @@ Offline-first Spanish verb conjugation flashcard trainer with AI-powered generat
 
 This will:
 - ✅ Start Ollama (if installed)
-- ✅ Pull the gemma3n model (if needed)
+- ✅ Pull the aya:8b model (if needed)
 - ✅ Launch the web server on http://localhost:8080
 - 🎯 Work offline if Ollama isn't available (basic conjugation patterns)
 
