@@ -64,39 +64,95 @@ class SyncEngine {
     this.notifySyncListeners('sync_started');
 
     try {
-      console.log('Starting sync process...');
+      console.log('Starting bidirectional sync process...');
 
-      // Get unsynced local cards
+      let uploadedCount = 0;
+      let downloadedCount = 0;
+
+      // Step 1: Upload local changes
       const unsyncedCards = await cardDB.getUnsyncedCards();
 
-      if (unsyncedCards.length === 0) {
-        console.log('No cards to sync');
-        this.syncInProgress = false;
-        this.notifySyncListeners('sync_completed', { uploaded: 0, downloaded: 0 });
-        return true;
+      if (unsyncedCards.length > 0) {
+        console.log(`Uploading ${unsyncedCards.length} unsynced cards...`);
+        const uploadResult = await this.uploadCards(unsyncedCards);
+
+        if (uploadResult.success) {
+          // Mark cards as synced
+          const cardIds = unsyncedCards.map(card => card.id);
+          await cardDB.markCardsSynced(cardIds);
+          uploadedCount = unsyncedCards.length;
+          console.log(`✓ Uploaded ${uploadedCount} cards`);
+        } else {
+          throw new Error(uploadResult.error || 'Upload failed');
+        }
       }
 
-      // Upload local changes
-      const uploadResult = await this.uploadCards(unsyncedCards);
+      // Step 2: Download cards from server
+      console.log('Downloading cards from server...');
+      const downloadResult = await this.downloadCards();
 
-      if (uploadResult.success) {
-        // Mark cards as synced
-        const cardIds = unsyncedCards.map(card => card.id);
-        await cardDB.markCardsSynced(cardIds);
+      if (downloadResult.success) {
+        const serverCards = downloadResult.cards;
+        const localCards = await cardDB.getCards();
+        const localCardIds = new Set(localCards.map(card => card.id));
 
-        // Update last sync timestamp
-        await cardDB.setSyncMetadata('last_sync', Date.now());
+        // Filter out cards we already have
+        const newCards = serverCards.filter(card => !localCardIds.has(card.id));
 
-        console.log(`Sync completed: ${unsyncedCards.length} cards uploaded`);
-        this.notifySyncListeners('sync_completed', {
-          uploaded: unsyncedCards.length,
-          downloaded: 0
-        });
+        if (newCards.length > 0) {
+          console.log(`Found ${newCards.length} new cards from other devices`);
 
-        return true;
+          // Separate by card type and save
+          const newVerbCards = newCards.filter(card => card.type === 'verb');
+          const newSentenceCards = newCards.filter(card => card.type === 'sentence');
+
+          for (const card of newVerbCards) {
+            // Save individual verb card
+            const verbData = {
+              verb: card.verb,
+              conjugations: [{
+                pronoun: card.pronoun,
+                tense: card.tense,
+                mood: card.mood,
+                form: card.conjugated_form
+              }]
+            };
+
+            // Manually create the card with existing ID
+            const transaction = cardDB.db.transaction(['cards'], 'readwrite');
+            const store = transaction.objectStore('cards');
+            card.sync_status = 'synced'; // Mark as already synced
+            await store.put(card);
+          }
+
+          for (const card of newSentenceCards) {
+            // Manually create the card with existing ID
+            const transaction = cardDB.db.transaction(['cards'], 'readwrite');
+            const store = transaction.objectStore('cards');
+            card.sync_status = 'synced'; // Mark as already synced
+            await store.put(card);
+          }
+
+          downloadedCount = newCards.length;
+          console.log(`✓ Downloaded ${downloadedCount} cards`);
+        } else {
+          console.log('No new cards to download');
+        }
       } else {
-        throw new Error(uploadResult.error || 'Upload failed');
+        console.warn('Download failed:', downloadResult.error);
+        // Don't throw - upload succeeded, download failure is non-fatal
       }
+
+      // Update last sync timestamp
+      await cardDB.setSyncMetadata('last_sync', Date.now());
+
+      console.log(`Sync completed: ${uploadedCount} uploaded, ${downloadedCount} downloaded`);
+      this.notifySyncListeners('sync_completed', {
+        uploaded: uploadedCount,
+        downloaded: downloadedCount
+      });
+
+      return true;
 
     } catch (error) {
       console.error('Sync failed:', error);
@@ -131,6 +187,29 @@ class SyncEngine {
 
     } catch (error) {
       console.error('Upload failed:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Download cards from server that were created on other devices
+  async downloadCards() {
+    try {
+      const response = await fetch(`${this.syncEndpoint}/api/cards`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      return { success: true, cards: result.cards || [] };
+
+    } catch (error) {
+      console.error('Download failed:', error);
       return { success: false, error: error.message };
     }
   }
