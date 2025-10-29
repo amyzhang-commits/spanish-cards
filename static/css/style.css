@@ -608,6 +608,33 @@ nav {
     color: #ff8e53;
     font-weight: 600;
     font-size: 1.1rem;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 2px dashed transparent;
+    transition: all 0.2s ease;
+    cursor: text;
+    display: inline-block;
+    min-width: 100px;
+    text-align: center;
+}
+
+.conjugated-form:hover {
+    border-color: rgba(255, 142, 83, 0.4);
+    background: rgba(255, 142, 83, 0.1);
+}
+
+.conjugated-form:focus {
+    outline: none;
+    border-color: #ff8e53;
+    background: rgba(255, 142, 83, 0.15);
+    box-shadow: 0 0 0 3px rgba(255, 142, 83, 0.2);
+}
+
+.edit-hint {
+    font-size: 0.75rem;
+    color: rgba(232, 234, 237, 0.5);
+    margin-top: 8px;
+    font-weight: 400;
 }
 
 /* Meaning card styling */

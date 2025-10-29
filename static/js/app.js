@@ -472,7 +472,7 @@ Now conjugate "${verb}" in ${tense} ${mood}. Return ONLY the conjugated verb for
       // Handle conjugation cards
       if (data.conjugations && data.conjugations.length > 0) {
         previewGrid.innerHTML = data.conjugations
-          .map(conjugation => this.createCardPreview(conjugation))
+          .map((conjugation, index) => this.createCardPreview(conjugation, index))
           .join('');
 
         let typeLabel;
@@ -493,9 +493,9 @@ Now conjugate "${verb}" in ${tense} ${mood}. Return ONLY the conjugated verb for
     this.elements.resultsSection.style.display = 'block';
   }
 
-  createCardPreview(conjugation) {
+  createCardPreview(conjugation, index) {
     return `
-      <div class="card-preview">
+      <div class="card-preview" data-card-index="${index}">
         <div class="card-front">
           <div class="card-prompt">
             <span class="pronoun">${conjugation.pronoun}</span>
@@ -504,7 +504,8 @@ Now conjugate "${verb}" in ${tense} ${mood}. Return ONLY the conjugated verb for
           </div>
         </div>
         <div class="card-back">
-          <span class="conjugated-form">${conjugation.form}</span>
+          <span class="conjugated-form" contenteditable="true" spellcheck="false" data-original="${conjugation.form}">${conjugation.form}</span>
+          <div class="edit-hint">✏️ Click to edit</div>
         </div>
       </div>
     `;
@@ -531,6 +532,17 @@ Now conjugate "${verb}" in ${tense} ${mood}. Return ONLY the conjugated verb for
         }];
         savedCards = await cardDB.saveSentenceCards(sentenceData);
       } else {
+        // Read edited conjugations from DOM before saving
+        const editedForms = document.querySelectorAll('.conjugated-form');
+        if (editedForms.length > 0 && this.currentVerbData.conjugations) {
+          editedForms.forEach((formElement, index) => {
+            if (this.currentVerbData.conjugations[index]) {
+              const editedText = formElement.textContent.trim();
+              this.currentVerbData.conjugations[index].form = editedText;
+            }
+          });
+        }
+
         // Save as verb cards with regularity information
         const isRegular = this.currentVerbData.isRegular !== undefined ? this.currentVerbData.isRegular : true;
         savedCards = await cardDB.saveVerbCards(this.currentVerbData, isRegular);
