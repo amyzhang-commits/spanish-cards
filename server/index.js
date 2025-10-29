@@ -7,6 +7,11 @@ const { Pool } = pg;
 const app = express();
 const PORT = process.env.PORT || 8000;
 
+// Device allowlist for security
+const ALLOWED_DEVICES = process.env.ALLOWED_DEVICE_IDS
+  ? process.env.ALLOWED_DEVICE_IDS.split(',').map(id => id.trim())
+  : [];
+
 // IMPORTANT: Respond immediately to health checks, even if DB isn't ready yet
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: Date.now() });
@@ -64,6 +69,28 @@ app.options('*', cors());
 
 app.use(express.json({ limit: '10mb' }));
 
+// Middleware to check device authorization for write operations
+function checkDeviceAuth(req, res, next) {
+  // Skip auth check if no allowlist configured (open access)
+  if (ALLOWED_DEVICES.length === 0) {
+    return next();
+  }
+
+  // Check device_id in body (POST) or query (DELETE)
+  const device_id = req.body?.device_id || req.query?.device_id;
+
+  if (!device_id) {
+    return res.status(401).json({ error: 'device_id required' });
+  }
+
+  if (!ALLOWED_DEVICES.includes(device_id)) {
+    console.log(`Blocked unauthorized device: ${device_id}`);
+    return res.status(403).json({ error: 'Device not authorized' });
+  }
+
+  next();
+}
+
 // Root route for Railway health checks
 app.get('/', (req, res) => {
   res.json({ 
@@ -84,7 +111,7 @@ app.get('/health', (req, res) => {
 });
 
 // Upload cards from device
-app.post('/api/cards', async (req, res) => {
+app.post('/api/cards', checkDeviceAuth, async (req, res) => {
   const client = await pool.connect();
   try {
     const { cards, device_id } = req.body;
@@ -136,7 +163,7 @@ app.post('/api/cards', async (req, res) => {
 });
 
 // Batch delete cards
-app.post('/api/cards/delete', async (req, res) => {
+app.post('/api/cards/delete', checkDeviceAuth, async (req, res) => {
   const client = await pool.connect();
   try {
     const { card_ids, device_id } = req.body;
@@ -254,7 +281,8 @@ app.get('/api/stats', async (req, res) => {
 });
 
 // Admin: Clear all cards (hard delete from database)
-app.delete('/api/admin/clear-all', async (req, res) => {
+// Requires device_id in query param: /api/admin/clear-all?device_id=YOUR_ID
+app.delete('/api/admin/clear-all', checkDeviceAuth, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
