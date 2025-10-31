@@ -281,6 +281,13 @@ Now conjugate "${verb}" in ${tense} ${mood}. Return ONLY the conjugated verb for
       return await this.generateOfflineConjugations(verb, tenseMood);
     }
 
+    // Validate tense/mood matches what was requested
+    if (!this.validateTenseMood(forms, tense, mood, verb)) {
+      console.warn(`Aya returned wrong tense/mood. Expected ${tense} ${mood}, but forms don't match.`);
+      console.log('Falling back to offline generation.');
+      return await this.generateOfflineConjugations(verb, tenseMood);
+    }
+
     // Structure into JSON manually
     const pronouns = ['yo', 'tú', 'él/ella/usted', 'nosotros', 'vosotros', 'ellos/ellas/ustedes'];
     const conjugations = pronouns.map((pronoun, i) => ({
@@ -321,6 +328,80 @@ Now conjugate "${verb}" in ${tense} ${mood}. Return ONLY the conjugated verb for
       return [tense, mood];
     }
     return [tenseMood, 'indicative'];
+  }
+
+  validateTenseMood(forms, tense, mood, verb) {
+    // Skip validation for irregular verbs (they're too unpredictable)
+    const irregularVerbs = [
+      'ser', 'estar', 'ir', 'haber', 'tener', 'hacer', 'poder', 'decir', 'querer', 'venir',
+      'dar', 'ver', 'saber', 'salir', 'poner', 'traer', 'conocer', 'parecer', 'seguir'
+    ];
+    if (irregularVerbs.includes(verb.toLowerCase())) {
+      return true; // Trust Aya for irregular verbs
+    }
+
+    // For regular verbs, check characteristic endings
+    const ending = verb.slice(-2);
+
+    // Present Indicative patterns
+    if (tense === 'present' && mood === 'indicative') {
+      if (ending === 'ar') {
+        return forms[0].endsWith('o') && forms[1].endsWith('as') && forms[3].endsWith('amos');
+      } else if (ending === 'er') {
+        return forms[0].endsWith('o') && forms[1].endsWith('es') && forms[3].endsWith('emos');
+      } else if (ending === 'ir') {
+        return forms[0].endsWith('o') && forms[1].endsWith('es') && forms[3].endsWith('imos');
+      }
+    }
+
+    // Imperfect Indicative patterns
+    if (tense === 'imperfect' && mood === 'indicative') {
+      if (ending === 'ar') {
+        return forms[0].endsWith('aba') && forms[1].endsWith('abas') && forms[3].endsWith('ábamos');
+      } else if (ending === 'er' || ending === 'ir') {
+        return forms[0].endsWith('ía') && forms[1].endsWith('ías') && forms[3].endsWith('íamos');
+      }
+    }
+
+    // Preterite patterns
+    if (tense === 'preterite' && mood === 'indicative') {
+      if (ending === 'ar') {
+        return forms[0].endsWith('é') && forms[1].endsWith('aste') && forms[3].endsWith('amos');
+      } else if (ending === 'er' || ending === 'ir') {
+        return forms[0].endsWith('í') && forms[1].endsWith('iste') && forms[3].endsWith('imos');
+      }
+    }
+
+    // Future patterns (all verbs use full infinitive + endings)
+    if (tense === 'future' && mood === 'indicative') {
+      return forms[0].endsWith('é') && forms[1].endsWith('ás') && forms[3].endsWith('emos');
+    }
+
+    // Conditional patterns
+    if (tense === 'simple' && mood === 'conditional') {
+      return forms[0].endsWith('ía') && forms[1].endsWith('ías') && forms[3].endsWith('íamos');
+    }
+
+    // Present Subjunctive patterns
+    if (tense === 'present' && mood === 'subjunctive') {
+      if (ending === 'ar') {
+        return forms[0].endsWith('e') && forms[1].endsWith('es') && forms[3].endsWith('emos');
+      } else if (ending === 'er' || ending === 'ir') {
+        return forms[0].endsWith('a') && forms[1].endsWith('as') && forms[3].endsWith('amos');
+      }
+    }
+
+    // Imperfect Subjunctive patterns
+    if (tense === 'imperfect' && mood === 'subjunctive') {
+      if (ending === 'ar') {
+        return forms[0].endsWith('ara') && forms[1].endsWith('aras');
+      } else if (ending === 'er' || ending === 'ir') {
+        return forms[0].endsWith('iera') && forms[1].endsWith('ieras');
+      }
+    }
+
+    // For imperative or unknown patterns, accept anything
+    return true;
   }
 
   getBasicTargetedConjugations(verb, tense, mood) {
