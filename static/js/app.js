@@ -331,17 +331,31 @@ Now conjugate "${verb}" in ${tense} ${mood}. Return ONLY the conjugated verb for
   }
 
   validateTenseMood(forms, tense, mood, verb) {
-    // Skip validation for irregular verbs (they're too unpredictable)
+    const ending = verb.slice(-2);
+
+    // IMPORTANT: Future and Conditional are ALWAYS regular (even for irregular verbs!)
+    // Validate these FIRST before checking if verb is irregular
+
+    // Future patterns (all verbs use full infinitive + endings)
+    if (tense === 'future' && mood === 'indicative') {
+      return forms[0].endsWith('é') && forms[1].endsWith('ás') && forms[3].endsWith('emos');
+    }
+
+    // Conditional patterns (all verbs are regular)
+    if (tense === 'simple' && mood === 'conditional') {
+      return forms[0].endsWith('ía') && forms[1].endsWith('ías') && forms[3].endsWith('íamos');
+    }
+
+    // Skip validation for irregular verbs in other tenses (they're too unpredictable)
     const irregularVerbs = [
       'ser', 'estar', 'ir', 'haber', 'tener', 'hacer', 'poder', 'decir', 'querer', 'venir',
       'dar', 'ver', 'saber', 'salir', 'poner', 'traer', 'conocer', 'parecer', 'seguir'
     ];
     if (irregularVerbs.includes(verb.toLowerCase())) {
-      return true; // Trust Aya for irregular verbs
+      return true; // Trust Aya for irregular verbs in other tenses
     }
 
     // For regular verbs, check characteristic endings
-    const ending = verb.slice(-2);
 
     // Present Indicative patterns
     if (tense === 'present' && mood === 'indicative') {
@@ -370,16 +384,6 @@ Now conjugate "${verb}" in ${tense} ${mood}. Return ONLY the conjugated verb for
       } else if (ending === 'er' || ending === 'ir') {
         return forms[0].endsWith('í') && forms[1].endsWith('iste') && forms[3].endsWith('imos');
       }
-    }
-
-    // Future patterns (all verbs use full infinitive + endings)
-    if (tense === 'future' && mood === 'indicative') {
-      return forms[0].endsWith('é') && forms[1].endsWith('ás') && forms[3].endsWith('emos');
-    }
-
-    // Conditional patterns
-    if (tense === 'simple' && mood === 'conditional') {
-      return forms[0].endsWith('ía') && forms[1].endsWith('ías') && forms[3].endsWith('íamos');
     }
 
     // Present Subjunctive patterns
