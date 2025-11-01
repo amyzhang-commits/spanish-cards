@@ -1,4 +1,6 @@
-// Offline-first Spanish Verb Trainer App
+// Spanish Verb Trainer App
+// Works completely offline (except optional cloud sync)
+// Uses local Ollama LLM if available, falls back to rule-based conjugation
 class SpanishVerbApp {
   constructor() {
     this.currentVerbData = null;
@@ -95,7 +97,7 @@ class SpanishVerbApp {
     this.elements.retryBtn.addEventListener('click', () => this.retryGeneration());
     this.elements.offlineBtn.addEventListener('click', () => this.handleOfflineMode());
 
-    // Online/offline events
+    // Internet connectivity events (for cloud sync)
     window.addEventListener('online', () => this.handleOnlineStatus(true));
     window.addEventListener('offline', () => this.handleOnlineStatus(false));
 
@@ -138,17 +140,17 @@ class SpanishVerbApp {
       let generatedData;
       const isRegular = await this.checkVerbRegularity(verb);
 
-      // Try online generation first if browser is online
-      if (this.isOnline && tenseMood !== 'meaning_only') {
+      // Try Ollama (local LLM) first, fall back to rule-based generation if unavailable
+      if (tenseMood !== 'meaning_only') {
         try {
-          generatedData = await this.generateTargetedConjugations(verb, tenseMood);
+          generatedData = await this.generateWithOllama(verb, tenseMood);
         } catch (ollamaError) {
-          // Ollama not available, fall back to offline mode
-          console.warn('Ollama not available, using offline generation:', ollamaError.message);
-          generatedData = await this.generateOfflineConjugations(verb, tenseMood);
+          // Ollama not running locally, fall back to rule-based generation
+          console.warn('Ollama not available, using rule-based generation:', ollamaError.message);
+          generatedData = await this.generateRuleBased(verb, tenseMood);
         }
       } else {
-        generatedData = await this.generateOfflineConjugations(verb, tenseMood);
+        generatedData = await this.generateRuleBased(verb, tenseMood);
       }
 
       this.currentVerbData = {
@@ -178,7 +180,7 @@ class SpanishVerbApp {
     return !irregularVerbs.includes(verb.toLowerCase());
   }
 
-  async generateTargetedConjugations(verb, tenseMood) {
+  async generateWithOllama(verb, tenseMood) {
     const [tense, mood] = this.parseTenseMood(tenseMood);
 
     if (tenseMood === 'meaning_only') {
@@ -212,7 +214,7 @@ class SpanishVerbApp {
       };
     }
 
-    // For conjugations: Get plain text from aya, parse with code
+    // For conjugations: Use Ollama/Aya (runs locally on port 11434)
     const conjugationPrompt = `Conjugate the Spanish verb "${verb}" in ${tense} ${mood} tense.
 
 Return ONLY the 6 conjugated verb forms (NOT the pronouns) separated by the pipe character | with NO spaces.
@@ -271,21 +273,21 @@ Now conjugate "${verb}" in ${tense} ${mood}. Return ONLY the conjugated verb for
     // Check if forms are empty (might indicate Aya returned pronouns only)
     if (forms.every(f => f === '')) {
       console.warn('All forms are empty after stripping pronouns. Response might contain only pronouns.');
-      console.log('Falling back to offline generation.');
-      return await this.generateOfflineConjugations(verb, tenseMood);
+      console.log('Falling back to rule-based generation.');
+      return await this.generateRuleBased(verb, tenseMood);
     }
 
     // Validate we got 6 forms
     if (forms.length !== 6) {
-      console.warn(`Expected 6 forms, got ${forms.length}. Falling back to offline generation.`);
-      return await this.generateOfflineConjugations(verb, tenseMood);
+      console.warn(`Expected 6 forms, got ${forms.length}. Falling back to rule-based generation.`);
+      return await this.generateRuleBased(verb, tenseMood);
     }
 
     // Validate tense/mood matches what was requested
     if (!this.validateTenseMood(forms, tense, mood, verb)) {
       console.warn(`Aya returned wrong tense/mood. Expected ${tense} ${mood}, but forms don't match.`);
-      console.log('Falling back to offline generation.');
-      return await this.generateOfflineConjugations(verb, tenseMood);
+      console.log('Falling back to rule-based generation.');
+      return await this.generateRuleBased(verb, tenseMood);
     }
 
     // Structure into JSON manually
@@ -303,11 +305,11 @@ Now conjugate "${verb}" in ${tense} ${mood}. Return ONLY the conjugated verb for
     };
   }
 
-  async generateOfflineConjugations(verb, tenseMood) {
+  async generateRuleBased(verb, tenseMood) {
     if (tenseMood === 'meaning_only') {
       return {
         verb: verb,
-        english_meaning: 'Translation not available offline'
+        english_meaning: 'Translation not available (Ollama not running)'
       };
     }
 
@@ -520,9 +522,9 @@ Now conjugate "${verb}" in ${tense} ${mood}. Return ONLY the conjugated verb for
         ];
       }
     }
-    // Fallback
+    // Fallback for unknown tense/mood
     else {
-      endings = ['[offline]', '[offline]', '[offline]', '[offline]', '[offline]', '[offline]'];
+      endings = ['[unknown]', '[unknown]', '[unknown]', '[unknown]', '[unknown]', '[unknown]'];
     }
 
     return pronouns.map((pronoun, i) => ({
@@ -613,7 +615,7 @@ Now conjugate "${verb}" in ${tense} ${mood}. Return ONLY the conjugated verb for
         const sentenceData = [{
           spanish_sentence: this.currentVerbData.verb,
           english_translation: this.currentVerbData.english_meaning || 'Translation not available',
-          grammar_notes: `Meaning card generated ${this.isOnline ? 'online' : 'offline'}`
+          grammar_notes: `Meaning card generated with ${this.currentVerbData.english_meaning?.includes('Ollama') ? 'rule-based fallback' : 'Ollama'}`
         }];
         savedCards = await cardDB.saveSentenceCards(sentenceData);
       } else {
@@ -640,7 +642,7 @@ Now conjugate "${verb}" in ${tense} ${mood}. Return ONLY the conjugated verb for
       // Update UI stats
       await this.updateUI();
 
-      // Trigger sync if online
+      // Trigger cloud sync if internet is available
       if (this.isOnline) {
         syncEngine.syncCards();
       }
@@ -705,16 +707,17 @@ Now conjugate "${verb}" in ${tense} ${mood}. Return ONLY the conjugated verb for
     this.elements.generateBtn.disabled = false;
   }
 
+  // Handle internet connectivity status (for cloud sync feature)
   handleOnlineStatus(isOnline) {
     this.isOnline = isOnline;
 
     if (isOnline) {
       this.elements.offlineIndicator.style.display = 'none';
-      this.elements.offlineIndicator.textContent = '🌐 Online';
+      this.elements.offlineIndicator.textContent = '🌐 Internet Connected';
       this.elements.offlineIndicator.classList.add('online');
     } else {
       this.elements.offlineIndicator.style.display = 'block';
-      this.elements.offlineIndicator.textContent = '📱 Working Offline';
+      this.elements.offlineIndicator.textContent = '📱 No Internet (Sync Disabled)';
       this.elements.offlineIndicator.classList.remove('online');
     }
 
